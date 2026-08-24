@@ -1,0 +1,29 @@
+{
+  "name": "paprel-embed-ui-examples",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:component-lab": "npm run dev -w @paprel-examples/component-lab",
+    "dev:accounting": "npm run dev -w @paprel-examples/accounting-dashboard",
+    "dev:real-estate": "npm run dev -w @paprel-examples/real-estate-accounting",
+    "build:component-lab": "npm run build -w @paprel-examples/component-lab",
+    "build:accounting": "npm run build -w @paprel-examples/accounting-dashboard",
+    "build:real-estate": "npm run build -w @paprel-examples/real-estate-accounting",
+    "build": "npm run build:component-lab && npm run build:accounting && npm run build:real-estate"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@paprel/accounting": "file:../paprel-embed/packages/accounting",
+    "@paprel/embed-core": "file:../paprel-embed/packages/core",
+    "@paprel/reports": "file:../paprel-embed/packages/reports",
+    "@paprel/ui": "file:../paprel-embed/packages/ui"
+  },
+  "devDependencies": {
+    "vite": "^6.4.3"
+  }
+}

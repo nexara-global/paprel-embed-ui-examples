@@ -1,0 +1,14 @@
+{
+  "name": "@paprel-examples/accounting-dashboard",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@paprel/accounting": "^0.1.0",
+    "@paprel/embed-core": "^0.1.0",
+    "@paprel/reports": "^0.1.0"
+  }
+}
