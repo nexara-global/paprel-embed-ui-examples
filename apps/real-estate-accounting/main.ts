@@ -27,24 +27,28 @@ let expiresAt = 0;
 let connectedCompany: { id: string; name: string; currency?: string } | null = null;
 
 async function getTokens(): Promise<EmbedTokenSet> {
-  const tokens = await requestEmbedTokens(activeEntityId);
+  const tokens = await requestEmbedTokens(activeEntityId) as EmbedTokenSet & { companyId?: string };
+  const expectedCompanyId = entities.find((entity) => entity.id === activeEntityId)?.companyId;
+  if (expectedCompanyId && tokens.companyId && tokens.companyId !== expectedCompanyId) {
+    throw new Error(`The ${activeEntityId} App Connect client is mapped to a different Paprel company.`);
+  }
   expiresAt = tokens.expiresAt;
   return tokens;
 }
 
-function parseEntities(value: string | undefined): Array<{ id: string; label: string }> {
+function parseEntities(value: string | undefined): Array<{ id: string; label: string; companyId?: string }> {
   const parsed = String(value ?? "")
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
     .map((item) => {
       const separator = item.indexOf(":");
-      return separator > 0
-        ? { id: item.slice(0, separator).trim(), label: item.slice(separator + 1).trim() }
-        : { id: item, label: item };
+      if (separator < 1) return { id: item, label: item };
+      const [id, label, companyId] = item.split(":").map((part) => part.trim());
+      return { id, label, companyId: companyId || undefined };
     })
     .filter((entity) => entity.id && entity.label);
-  return parsed.length ? parsed : [{ id: "default", label: "HarborStone Property Group" }];
+  return parsed.length ? parsed : [{ id: "default", label: "HarborStone" }];
 }
 
 async function loadConnectedCompany(accessToken: string): Promise<void> {
