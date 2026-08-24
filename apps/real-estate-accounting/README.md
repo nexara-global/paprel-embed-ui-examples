@@ -15,6 +15,18 @@ The app automatically reuses `apps/accounting-dashboard/.env.local`, so the work
 
 This sample represents one embedded entity. In a multi-entity host, bind each entity to its own server-side App Connect client credentials instead of switching entities with browser-side state.
 
+## Multi-entity switcher
+
+Set `VITE_PAPREL_ENTITIES` to browser-safe entity keys and labels, then provide a distinct server-side App Connect client for every additional entity:
+
+```env
+VITE_PAPREL_ENTITIES=default:HarborStone Property Group,meridian:Meridian Residential
+APP_CONNECT_ENTITY_MERIDIAN_CLIENT_ID=PLC_…
+APP_CONNECT_ENTITY_MERIDIAN_CLIENT_SECRET=PLS_…
+```
+
+The entity key selects credentials only inside the development BFF. Secrets never enter the browser bundle. Switching entity obtains a new JWT, resets the current view, and reloads all components under the selected company context.
+
 Open http://localhost:5181.
 
 Run `npm run build` from the repository root to verify every example application.

@@ -14,6 +14,8 @@ type ReportView = "trial-balance" | "balance-sheet" | "income-statement" | "cash
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const partnerDomain = import.meta.env.VITE_PARTNER_DOMAIN || window.location.hostname;
 const hostTheme = { primary: "#744c2f", accent: "#f5eee5", radius: "6px" } as const;
+const entities = parseEntities(import.meta.env.VITE_PAPREL_ENTITIES);
+let activeEntityId = entities[0].id;
 
 let activeView: View = "accounts";
 let selectedAccountId = "";
@@ -25,9 +27,24 @@ let expiresAt = 0;
 let connectedCompany: { id: string; name: string; currency?: string } | null = null;
 
 async function getTokens(): Promise<EmbedTokenSet> {
-  const tokens = await requestEmbedTokens();
+  const tokens = await requestEmbedTokens(activeEntityId);
   expiresAt = tokens.expiresAt;
   return tokens;
+}
+
+function parseEntities(value: string | undefined): Array<{ id: string; label: string }> {
+  const parsed = String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const separator = item.indexOf(":");
+      return separator > 0
+        ? { id: item.slice(0, separator).trim(), label: item.slice(separator + 1).trim() }
+        : { id: item, label: item };
+    })
+    .filter((entity) => entity.id && entity.label);
+  return parsed.length ? parsed : [{ id: "default", label: "HarborStone Property Group" }];
 }
 
 async function loadConnectedCompany(accessToken: string): Promise<void> {
@@ -119,7 +136,12 @@ function renderShell(): void {
       <aside class="sidebar">
         <div class="identity">
           <span class="brand-mark">H</span>
-          <div><strong>HarborStone</strong><span>Property portfolio</span></div>
+          <label class="entity-switcher">
+            <span>Portfolio company</span>
+            <select id="company-switcher" aria-label="Portfolio company">
+              ${entities.map((entity) => `<option value="${escapeAttribute(entity.id)}"${entity.id === activeEntityId ? " selected" : ""}>${escapeHtml(entity.label)}</option>`).join("")}
+            </select>
+          </label>
         </div>
         <nav aria-label="Property accounting">
           ${nav.map((item) => `<button class="nav-item${navActive(item.id) ? " is-active" : ""}" data-view="${item.id}">
@@ -173,6 +195,20 @@ function applyHostTheme(): void {
 }
 
 function wireShell(): void {
+  document.querySelector<HTMLSelectElement>("#company-switcher")?.addEventListener("change", async (event) => {
+    const select = event.currentTarget as HTMLSelectElement;
+    const previous = activeEntityId;
+    select.disabled = true;
+    try {
+      await switchEntity(select.value);
+    } catch (error) {
+      activeEntityId = previous;
+      select.value = previous;
+      select.disabled = false;
+      window.alert(errorMessage(error, "Unable to switch company"));
+    }
+  });
+
   document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
       navigate(button.dataset.view as View);
@@ -229,6 +265,33 @@ function wireShell(): void {
   });
 }
 
+async function switchEntity(entityId: string): Promise<void> {
+  if (entityId === activeEntityId) return;
+  activeEntityId = entityId;
+  connectedCompany = null;
+  selectedAccountId = "";
+  selectedJournalId = "";
+  selectedBankAccountId = "";
+  activeView = "accounts";
+  const initial = await getTokens();
+  await loadConnectedCompany(initial.accessToken);
+  configureSession();
+  renderShell();
+}
+
+function configureSession(): void {
+  configureAccounting({
+    baseUrl: "",
+    locale: "en",
+    auth: {
+      partnerDomain,
+      getTokens,
+      onTokensUpdated(tokens) { expiresAt = tokens.expiresAt; updateExpiry(); },
+      onSessionExpired() { app.innerHTML = `<main class="boot-card error"><h1>Session expired</h1><p>Refresh the page to reconnect.</p></main>`; },
+    },
+  });
+}
+
 function updateExpiry(): void {
   const el = document.querySelector("#token-expiry");
   if (!el || !expiresAt) return;
@@ -240,16 +303,7 @@ async function bootstrap(): Promise<void> {
   try {
     const initial = await getTokens();
     await loadConnectedCompany(initial.accessToken);
-    configureAccounting({
-      baseUrl: "",
-      locale: "en",
-      auth: {
-        partnerDomain,
-        getTokens,
-        onTokensUpdated(tokens) { expiresAt = tokens.expiresAt; updateExpiry(); },
-        onSessionExpired() { app.innerHTML = `<main class="boot-card error"><h1>Session expired</h1><p>Refresh the page to reconnect.</p></main>`; },
-      },
-    });
+    configureSession();
     expiresAt = initial.expiresAt;
     renderShell();
   } catch (error) {

@@ -91,10 +91,14 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
           return;
         }
 
-        const tokenUrl = env.APP_CONNECT_TOKEN_URL?.trim();
-        const clientId = env.APP_CONNECT_CLIENT_ID?.trim();
-        const clientSecret = env.APP_CONNECT_CLIENT_SECRET?.trim();
-        const partnerDomain = env.PARTNER_DOMAIN?.trim();
+        const requestUrl = new URL(req.url ?? "/", "http://localhost");
+        const entityId = requestUrl.searchParams.get("entity")?.trim() || "default";
+        const safeEntityId = entityId.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+        const prefix = entityId === "default" ? "APP_CONNECT_" : `APP_CONNECT_ENTITY_${safeEntityId}_`;
+        const tokenUrl = (env[`${prefix}TOKEN_URL`] || env.APP_CONNECT_TOKEN_URL)?.trim();
+        const clientId = env[`${prefix}CLIENT_ID`]?.trim();
+        const clientSecret = env[`${prefix}CLIENT_SECRET`]?.trim();
+        const partnerDomain = (env[`${prefix}PARTNER_DOMAIN`] || env.PARTNER_DOMAIN)?.trim();
 
         if (!tokenUrl || !clientId || !clientSecret || !partnerDomain) {
           res.statusCode = 500;
@@ -102,7 +106,9 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
           res.end(
             JSON.stringify({
               error:
-                "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN.",
+                entityId === "default"
+                  ? "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN."
+                  : `Missing App Connect credentials for entity '${entityId}'. Set APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID and APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET.`,
             }),
           );
           return;
