@@ -52,3 +52,7 @@ Never commit App Connect client secrets. The included token exchange is a develo
 ## Security
 
 Copy only the supplied `.env.example` files. Local `.env` and `.env.local` files are ignored by Git. If a credential is ever committed or exposed, revoke it immediately rather than relying on deletion from Git history.
+
+## No warranty or liability
+
+These examples are provided for demonstration and development purposes only, without warranty of any kind. Nexara Global and the contributors are not liable for any claim, loss, damage, or other liability arising from their use, modification, or distribution. Review and test the examples for your own security, compliance, accounting, tax, and production requirements before using them in a live environment.
