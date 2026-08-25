@@ -3,7 +3,7 @@
  */
 import type { ViewId, JournalEditorMode } from "./views.js";
 import { DEFAULT_VIEW, isViewId } from "./views.js";
-import type { TransactionInbox } from "@paprel/accounting";
+import type { TransactionInbox } from "@paprel/embed-accounting";
 
 export type SampleRoute = {
   view: ViewId;

@@ -9,7 +9,7 @@ import {
   setEmbedLocale,
   type EmbedLocale,
   type TransactionInbox,
-} from "@paprel/accounting";
+} from "@paprel/embed-accounting";
 import { COMPONENT_CUES, renderComponentCue, wireComponentCues } from "./component-cues";
 import { onRouteChange, parseRoute, pushRoute, replaceRoute } from "./router.js";
 import { DEFAULT_VIEW, VIEW_META, type JournalEditorMode, type ViewId } from "./views.js";
@@ -246,7 +246,7 @@ function mountAppShell() {
           <span class="sidebar-foot-label">Tenant</span>
           <code>${companyShort}…</code>
           <span class="sidebar-foot-label">Package</span>
-          <code>@paprel/accounting</code>
+          <code>@paprel/embed-accounting</code>
         </div>
       </aside>
 

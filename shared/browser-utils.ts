@@ -1,4 +1,4 @@
-import type { EmbedTokenSet } from "@paprel/accounting";
+import type { EmbedTokenSet } from "@paprel/embed-accounting";
 
 type EmbedTokenResponse = EmbedTokenSet & { error?: unknown };
 

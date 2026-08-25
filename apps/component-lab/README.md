@@ -1,6 +1,6 @@
 # Paprel component lab
 
-Local smoke harness for `@paprel/accounting`. Runs every v1 widget against a real Paprel tenant via App Connect M2M — not a production partner template.
+Local smoke harness for `@paprel/embed-accounting`. Runs every v1 widget against a real Paprel tenant via App Connect M2M — not a production partner template.
 
 ## Prerequisites
 
@@ -89,7 +89,7 @@ Grant scopes on the App Connect client, then re-open the sample app (new token o
 | Match / exclude | `accounting:banking-transaction-category` or `-reconcile` |
 | Reconciliations | `accounting:banking-transaction-reconcile` |
 
-See the [Paprel Embed SDK documentation](https://github.com/newledgerio/paprel-embed/tree/main/docs) for the full gateway scope map.
+See the [Paprel Embed SDK documentation](https://github.com/nexara-global/paprel-embed-ui/tree/main/docs) for the full gateway scope map.
 
 ## Screens
 
@@ -114,7 +114,7 @@ Browser  →  GET /v1/accounting/…    →  Vite proxy → VITE_PAPREL_API_BASE
 
 - Embed SDK uses same-origin calls in dev (`baseUrl: ""`).
 - Accounting GETs omit `company_id`; hyperlane injects `JWT.cid`.
-- `configureAccounting` runs **before** `@paprel/accounting` is imported.
+- `configureAccounting` runs **before** `@paprel/embed-accounting` is imported.
 - Detail routes: `#/journal-detail?journal=…`, `#/bank-account-detail?account=…`, etc.
 
 ## Troubleshooting
@@ -129,4 +129,4 @@ Browser  →  GET /v1/accounting/…    →  Vite proxy → VITE_PAPREL_API_BASE
 
 ## Production
 
-This app is for **local/staging component testing only**. Partners need their own BFF and CORS (or same-origin gateway). See the [Paprel Embed integration documentation](https://github.com/newledgerio/paprel-embed/tree/main/docs/partner-integration).
+This app is for **local/staging component testing only**. Partners need their own BFF and CORS (or same-origin gateway). See the [Paprel Embed integration documentation](https://github.com/nexara-global/paprel-embed-ui/tree/main/docs/partner-integration).

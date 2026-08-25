@@ -2,9 +2,9 @@ import {
   configureAccounting,
   refreshEmbedSession,
   type EmbedTokenSet,
-} from "@paprel/accounting";
+} from "@paprel/embed-accounting";
 import type { PaprelResourceOpenDetail, PaprelViewChangeDetail, PaprelViewState } from "@paprel/embed-core";
-import "@paprel/reports";
+import "@paprel/embed-reports";
 import { errorMessage, escapeAttribute, escapeHtml, requestEmbedTokens } from "../../shared/browser-utils";
 import "./styles.css";
 
