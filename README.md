@@ -1,12 +1,12 @@
 # Paprel Embed UI reference application
 
-A production-shaped React reference for embedding Paprel accounting into a multi-entity real-estate platform.
+A production-shaped, framework-neutral reference for embedding Paprel accounting into a multi-entity real-estate platform.
 
 This repository intentionally contains one complete application rather than several overlapping demos. It shows the integration boundaries a partner should own: routing, company context, URL state, session presentation, error states, and the server-side App Connect token exchange.
 
 ## What it demonstrates
 
-- React and React Router host application architecture
+- Vite, vanilla TypeScript, and native History API routing
 - `@paprel/embed-accounting` and `@paprel/embed-reports` Web Components
 - host-owned account, journal, bank, transaction, and report routes
 - delegated `paprel:resource-open` and `paprel:view-change` events
