@@ -10,6 +10,7 @@ This repository intentionally contains one complete application rather than seve
 - `@paprel/embed-accounting` and `@paprel/embed-reports` Web Components
 - host-owned account, journal, bank, transaction, and report routes
 - delegated `paprel:resource-open` and `paprel:view-change` events
+- host-rendered success feedback from `paprel:operation-success`
 - URL-backed search, tabs, and pagination
 - one App Connect client per managed entity
 - automatic token renewal without exposing a client secret to the browser

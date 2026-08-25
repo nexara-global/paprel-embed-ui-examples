@@ -12,17 +12,22 @@ export class App {
   private workspace = document.createElement("main");
   private surface = document.createElement("section");
   private status = document.createElement("div");
+  private toast = document.createElement("div");
+  private toastTimer?: number;
 
   constructor(private root: HTMLElement) {
     this.workspace.className = "workspace";
     this.surface.className = "embed-surface";
     this.status.className = "boot-card inline";
+    this.toast.className = "success-toast";
+    this.toast.setAttribute("role", "status");
+    this.toast.hidden = true;
     const shell = document.createElement("div");
     shell.className = "app-shell";
     shell.append(createSidebar(this.session, this.router), this.workspace);
-    this.root.replaceChildren(shell);
+    this.root.replaceChildren(shell, this.toast);
     this.workspace.append(this.createHeader());
-    connectPaprelEvents(this.surface, this.router);
+    connectPaprelEvents(this.surface, this.router, (message) => this.showSuccess(message));
     this.router.subscribe(({ path, query }) => this.renderRoute(path, query));
     this.session.subscribe((state) => this.renderSession(state.ready, state.error));
   }
@@ -55,5 +60,12 @@ export class App {
     header.className = "topbar";
     header.innerHTML = `<div><p class="eyebrow">Real-estate accounting</p><h1>${titleFor(window.location.pathname)}</h1></div>`;
     return header;
+  }
+
+  private showSuccess(message: string): void {
+    window.clearTimeout(this.toastTimer);
+    this.toast.textContent = message;
+    this.toast.hidden = false;
+    this.toastTimer = window.setTimeout(() => { this.toast.hidden = true; }, 4500);
   }
 }

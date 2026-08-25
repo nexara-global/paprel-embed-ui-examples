@@ -1,7 +1,7 @@
-import type { PaprelResourceOpenDetail, PaprelViewChangeDetail } from "@paprel/embed-core";
+import type { PaprelOperationSuccessDetail, PaprelResourceOpenDetail, PaprelViewChangeDetail } from "@paprel/embed-core";
 import type { Router } from "../router";
 
-export function connectPaprelEvents(root: HTMLElement, router: Router): () => void {
+export function connectPaprelEvents(root: HTMLElement, router: Router, notify: (message: string) => void): () => void {
   const resourceOpen = (event: Event) => {
     const custom = event as CustomEvent<PaprelResourceOpenDetail>;
     const { resource, id } = custom.detail;
@@ -27,8 +27,10 @@ export function connectPaprelEvents(root: HTMLElement, router: Router): () => vo
     const id = String((event as CustomEvent<{ journal: { id?: string } }>).detail.journal.id ?? "");
     router.navigate(id ? `/journals/${id}` : "/journals");
   };
+  const operationSuccess = (event: Event) => notify((event as CustomEvent<PaprelOperationSuccessDetail>).detail.message);
   const listeners: Array<[string, EventListener]> = [
     ["paprel:resource-open", resourceOpen as EventListener], ["paprel:view-change", viewChange as EventListener],
+    ["paprel:operation-success", operationSuccess as EventListener],
     ["account-action", accountAction], ["account-saved", accountSaved as EventListener],
     ["journal-action", journalAction as EventListener], ["journal-saved", journalSaved as EventListener],
     ["journal-deleted", () => router.navigate("/journals")],
