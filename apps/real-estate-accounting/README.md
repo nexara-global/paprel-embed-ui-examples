@@ -33,6 +33,8 @@ Run `npm run build` from the repository root to verify every example application
 
 The app includes account list/detail/create/edit and journal list/detail/create/edit/copy/reverse workflows; a complete reports module (trial balance, balance sheet, income statement, cash flow, and general ledger); plus banking, transactions, and reconciliation. The client must have scopes for the screens and actions you intend to use. A screen with a missing scope will return the expected 403 state.
 
+The shell owns navigation through one delegated `paprel:resource-open` listener. It also handles `paprel:view-change` and mirrors journal and transaction search, tab, and pagination state into namespaced URL parameters. This demonstrates router integration without requiring a router inside the Paprel components.
+
 ## Customize the host style
 
 Edit `styles.css` and override the `--paprel-*` properties on `.app-shell`. The accounting package supplies all component CSS automatically; no separate stylesheet import is required.
