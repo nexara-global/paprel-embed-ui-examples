@@ -79,11 +79,11 @@ function transactionLocksPage(): HTMLElement {
 
 export function renderPage(path: string, query: URLSearchParams): Match {
   let match: RegExpMatchArray | null;
-  if (path === "/accounts") return { params: {}, element: view(actions("Property income, deposits, liabilities, and operating costs.", "/accounts/new", "New portfolio account"), embedElement("paprel-chart-of-accounts")) };
+  if (path === "/accounts") return { params: {}, element: view(actions("Property income, deposits, liabilities, and operating costs.", "/accounts/new", "New Account"), embedElement("paprel-chart-of-accounts")) };
   if (path === "/accounts/new") return { params: {}, element: view(back("/accounts"), embedElement("paprel-account-form", { currency: "USD" })) };
   if ((match = path.match(/^\/accounts\/([^/]+)\/edit$/))) return { params: { id: match[1] }, element: view(back(`/accounts/${match[1]}`), embedElement("paprel-account-form", { "account-id": match[1], currency: "USD" })) };
   if ((match = path.match(/^\/accounts\/([^/]+)$/))) return { params: { id: match[1] }, element: view(back("/accounts", "Accounts"), embedElement("paprel-account-detail", { "account-id": match[1] })) };
-  if (path === "/journals") return { params: {}, element: view(actions("Review rent, fees, repairs, deposits, and adjustments.", "/journals/new", "New property journal"), embedElement("paprel-journal-list", collectionProps("paprel-journal-list", query))) };
+  if (path === "/journals") return { params: {}, element: view(actions("Review rent, fees, repairs, deposits, and adjustments.", "/journals/new", "New Journal"), embedElement("paprel-journal-list", collectionProps("paprel-journal-list", query))) };
   if (path === "/journals/new") return { params: {}, element: view(back("/journals"), embedElement("paprel-journal-editor", { mode: "create", currency: "USD" })) };
   if ((match = path.match(/^\/journals\/([^/]+)\/(edit|copy|reverse)$/))) return { params: { id: match[1], mode: match[2] }, element: view(back(`/journals/${match[1]}`), embedElement("paprel-journal-editor", { "journal-id": match[1], mode: match[2], currency: "USD" })) };
   if ((match = path.match(/^\/journals\/([^/]+)$/))) return { params: { id: match[1] }, element: view(back("/journals", "Journals"), embedElement("paprel-journal-detail", { "journal-id": match[1] })) };
