@@ -6,13 +6,8 @@
     "apps/*"
   ],
   "scripts": {
-    "dev:component-lab": "npm run dev -w @paprel-examples/component-lab",
-    "dev:accounting": "npm run dev -w @paprel-examples/accounting-dashboard",
-    "dev:real-estate": "npm run dev -w @paprel-examples/real-estate-accounting",
-    "build:component-lab": "npm run build -w @paprel-examples/component-lab",
-    "build:accounting": "npm run build -w @paprel-examples/accounting-dashboard",
-    "build:real-estate": "npm run build -w @paprel-examples/real-estate-accounting",
-    "build": "npm run build:component-lab && npm run build:accounting && npm run build:real-estate"
+    "dev": "npm run dev -w @paprel-examples/real-estate-accounting",
+    "build": "npm run build -w @paprel-examples/real-estate-accounting"
   },
   "engines": {
     "node": ">=22"
