@@ -4,11 +4,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "tsc --noEmit && vite build"
   },
   "dependencies": {
     "@paprel/embed-accounting": "^0.1.0",
     "@paprel/embed-core": "^0.1.0",
-    "@paprel/embed-reports": "^0.1.0"
+    "@paprel/embed-reports": "^0.1.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
+    "@types/node": "^24.3.0",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
   }
 }
