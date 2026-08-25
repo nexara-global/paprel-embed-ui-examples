@@ -187,21 +187,20 @@ function renderShell(): void {
           </button>`).join("")}
         </nav>
         <div class="sidebar-footer">
-          <div class="config-card" aria-label="Embed configuration">
+          <div class="connected-card" aria-label="Paprel connection">
             <div class="company-context">
               <span class="company-mark" aria-hidden="true">${escapeHtml((connectedCompany?.name || "P").slice(0, 1).toUpperCase())}</span>
               <div class="company-copy">
-                <span class="company-label"><i></i>Paprel company</span>
+                <span class="company-label"><i></i>Paprel connected</span>
                 <strong>${escapeHtml(connectedCompany?.name || "Connected company")}</strong>
                 <small>${escapeHtml(connectedCompany?.currency || "Authenticated entity")}</small>
               </div>
               ${connectedCompany?.id ? `<div class="company-id"><span>Company ID</span><code>${escapeHtml(connectedCompany.id)}</code></div>` : ""}
             </div>
-          </div>
-          <div class="connection-card">
-            <span class="status-dot"></span>
-            <div class="connection-copy"><strong>Paprel connected</strong><span id="token-expiry">Auto-renews</span></div>
-            <button id="refresh-session" class="refresh-button">Refresh</button>
+            <div class="connection-footer">
+              <div class="connection-copy"><strong>Session active</strong><span id="token-expiry">Auto-renews</span></div>
+              <button id="refresh-session" class="refresh-button">Refresh</button>
+            </div>
           </div>
         </div>
       </aside>
