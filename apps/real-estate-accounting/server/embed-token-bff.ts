@@ -101,10 +101,19 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
         const partnerDomain = (env[`${prefix}PARTNER_DOMAIN`] || env.PARTNER_DOMAIN)?.trim();
 
         if (!tokenUrl || !clientId || !clientSecret || !partnerDomain) {
-          res.statusCode = 500;
+          const required = [
+            ...(!tokenUrl ? ["APP_CONNECT_TOKEN_URL"] : []),
+            ...(!clientId ? [entityId === "default" ? "APP_CONNECT_CLIENT_ID" : `APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID`] : []),
+            ...(!clientSecret ? [entityId === "default" ? "APP_CONNECT_CLIENT_SECRET" : `APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET`] : []),
+            ...(!partnerDomain ? ["PARTNER_DOMAIN"] : []),
+          ];
+          res.statusCode = 503;
           res.setHeader("Content-Type", "application/json");
           res.end(
             JSON.stringify({
+              code: "APP_CONNECT_NOT_CONFIGURED",
+              entityId,
+              required,
               error:
                 entityId === "default"
                   ? "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN."
@@ -134,9 +143,10 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
 
           const raw = await tokenRes.text();
           if (!tokenRes.ok) {
+            console.error(`Paprel token exchange failed with status ${tokenRes.status}:`, raw);
             res.statusCode = tokenRes.status;
             res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Token exchange failed", status: tokenRes.status, body: raw }));
+            res.end(JSON.stringify({ error: "Token exchange failed", code: "APP_CONNECT_TOKEN_EXCHANGE_FAILED" }));
             return;
           }
 
