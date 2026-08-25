@@ -4,7 +4,7 @@ import type { SessionManager, SessionState } from "../session/session-manager";
 const navigation = [
   ["/accounts", "Chart of Accounts", "Property ledger structure"], ["/journals", "Journals", "Rent, costs and adjustments"],
   ["/reports", "Reports", "Portfolio performance"], ["/banking", "Banking", "Operating and deposit accounts"],
-  ["/transactions", "Transactions", "Categorize property activity"], ["/transaction-locks", "Transaction locks", "Protect closed periods"],
+  ["/transaction-locks", "Transaction locks", "Protect closed periods"],
 ] as const;
 
 export function createSidebar(session: SessionManager, router: Router): HTMLElement {
