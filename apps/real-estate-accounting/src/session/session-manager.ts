@@ -10,6 +10,7 @@ export type SessionState = {
   expiresAt: number;
   ready: boolean;
   refreshing: boolean;
+  setup: { entityId: string; required: string[] } | null;
 };
 
 type Listener = (state: Readonly<SessionState>) => void;
@@ -17,8 +18,23 @@ type Listener = (state: Readonly<SessionState>) => void;
 async function requestTokens(entityId: string): Promise<EmbedTokenSet & { companyId?: string }> {
   const response = await fetch(`/api/embed-token?entity=${encodeURIComponent(entityId)}`, { method: "POST" });
   const body = await response.json() as Record<string, unknown>;
-  if (!response.ok) throw new Error(String(body.error ?? "Token exchange failed"));
+  if (!response.ok) {
+    if (body.code === "APP_CONNECT_NOT_CONFIGURED") {
+      throw new AppConnectSetupError(
+        String(body.error ?? "App Connect credentials are not configured."),
+        String(body.entityId ?? entityId),
+        Array.isArray(body.required) ? body.required.map(String) : [],
+      );
+    }
+    throw new Error(String(body.error ?? "Token exchange failed"));
+  }
   return body as unknown as EmbedTokenSet & { companyId?: string };
+}
+
+class AppConnectSetupError extends Error {
+  constructor(message: string, readonly entityId: string, readonly required: string[]) {
+    super(message);
+  }
 }
 
 async function requestCompany(accessToken: string): Promise<Company | null> {
@@ -35,7 +51,7 @@ export class SessionManager {
 
   constructor() {
     const entityOptions = entities();
-    this.state = { company: null, entity: entityOptions[0], entityOptions, error: "", expiresAt: 0, ready: false, refreshing: false };
+    this.state = { company: null, entity: entityOptions[0], entityOptions, error: "", expiresAt: 0, ready: false, refreshing: false, setup: null };
   }
 
   snapshot(): Readonly<SessionState> { return this.state; }
@@ -59,7 +75,7 @@ export class SessionManager {
   }
 
   private async connect(entity: EntityConfig): Promise<void> {
-    this.patch({ ready: false, error: "", company: null });
+    this.patch({ ready: false, error: "", company: null, setup: null });
     try {
       const initial = await requestTokens(entity.id);
       if (entity.companyId && initial.companyId && entity.companyId !== initial.companyId) {
@@ -81,7 +97,10 @@ export class SessionManager {
       const company = await requestCompany(initial.accessToken);
       this.patch({ company, entity, expiresAt: initial.expiresAt, ready: true });
     } catch (cause) {
-      this.patch({ error: errorMessage(cause, "Unable to connect to Paprel") });
+      this.patch({
+        error: errorMessage(cause, "Unable to connect to Paprel"),
+        setup: cause instanceof AppConnectSetupError ? { entityId: cause.entityId, required: cause.required } : null,
+      });
     }
   }
 

@@ -101,10 +101,19 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
         const partnerDomain = (env[`${prefix}PARTNER_DOMAIN`] || env.PARTNER_DOMAIN)?.trim();
 
         if (!tokenUrl || !clientId || !clientSecret || !partnerDomain) {
-          res.statusCode = 500;
+          const required = [
+            ...(!tokenUrl ? ["APP_CONNECT_TOKEN_URL"] : []),
+            ...(!clientId ? [entityId === "default" ? "APP_CONNECT_CLIENT_ID" : `APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID`] : []),
+            ...(!clientSecret ? [entityId === "default" ? "APP_CONNECT_CLIENT_SECRET" : `APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET`] : []),
+            ...(!partnerDomain ? ["PARTNER_DOMAIN"] : []),
+          ];
+          res.statusCode = 503;
           res.setHeader("Content-Type", "application/json");
           res.end(
             JSON.stringify({
+              code: "APP_CONNECT_NOT_CONFIGURED",
+              entityId,
+              required,
               error:
                 entityId === "default"
                   ? "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN."

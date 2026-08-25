@@ -38,6 +38,8 @@ npm run dev
 
 Open <http://127.0.0.1:5181/>.
 
+If App Connect credentials are not available yet, the application still starts and displays a setup guide with the exact server variables required for the selected entity. No shared demo secrets are included in this public repository.
+
 ## Production boundary
 
 The Vite plugin in `apps/real-estate-accounting/server/embed-token-bff.ts` exists only for local development. In production, implement `POST /api/embed-token` in your server or serverless runtime. It must read the selected entity, load that entity's App Connect credentials from server-side secrets, exchange them with Paprel, and return the browser-safe token contract.

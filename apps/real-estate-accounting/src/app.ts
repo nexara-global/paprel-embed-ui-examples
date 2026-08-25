@@ -4,7 +4,7 @@ import { connectPaprelEvents } from "./paprel/events";
 import { embedElement } from "./paprel/elements";
 import { renderPage, titleFor } from "./pages/pages";
 import { Router } from "./router";
-import { SessionManager } from "./session/session-manager";
+import { SessionManager, type SessionState } from "./session/session-manager";
 import { createSidebar } from "./shell/sidebar";
 
 export class App {
@@ -12,7 +12,7 @@ export class App {
   private session = new SessionManager();
   private workspace = document.createElement("main");
   private surface = document.createElement("section");
-  private status = document.createElement("div");
+  private status: HTMLElement = document.createElement("div");
   private toast = document.createElement("div");
   private drawer = document.createElement("aside");
   private toastTimer?: number;
@@ -37,7 +37,7 @@ export class App {
       transactionResolved: () => this.resolveTransaction(),
     });
     this.router.subscribe(({ path, query }) => this.renderRoute(path, query));
-    this.session.subscribe((state) => this.renderSession(state.ready, state.error));
+    this.session.subscribe((state) => this.renderSession(state));
   }
 
   async start(): Promise<void> { await this.session.start(); }
@@ -65,17 +65,31 @@ export class App {
     this.surface.replaceChildren(element);
   }
 
-  private renderSession(ready: boolean, error: string): void {
+  private renderSession(state: Readonly<SessionState>): void {
     this.workspace.replaceChildren(this.createHeader());
-    if (!ready) {
-      this.status.className = `boot-card inline${error ? " error" : ""}`;
-      this.status.innerHTML = error ? `<p class="eyebrow">Connection failed</p><h2>Unable to open this company</h2><p>${error}</p>` : `<p class="eyebrow">Paprel connection</p><h2>Opening the property ledger</h2><p>Exchanging an App Connect token securely…</p>`;
+    if (!state.ready) {
+      if (state.setup) {
+        this.status = this.createSetupGuide(state);
+      } else {
+        this.status.className = `boot-card inline${state.error ? " error" : ""}`;
+        this.status.innerHTML = state.error ? `<p class="eyebrow">Connection failed</p><h2>Unable to open this company</h2><p>${state.error}</p>` : `<p class="eyebrow">Paprel connection</p><h2>Opening the property ledger</h2><p>Exchanging an App Connect token securely…</p>`;
+      }
       this.workspace.append(this.status);
     } else {
       this.workspace.append(this.surface);
       const route = this.router.current();
       this.renderRoute(route.path, route.query);
     }
+  }
+
+  private createSetupGuide(state: Readonly<SessionState>): HTMLElement {
+    const guide = document.createElement("section");
+    guide.className = "setup-guide";
+    const required = state.setup?.required ?? [];
+    guide.innerHTML = `<p class="eyebrow">Setup required</p><h2>Connect a Paprel company</h2><p>This example intentionally starts without demo credentials. Create a server-only environment file and add an App Connect client for <strong data-entity-label></strong>.</p><ol><li>Copy <code>apps/real-estate-accounting/.env.example</code> to <code>apps/real-estate-accounting/.env.local</code>.</li><li>Add the required server variables shown below.</li><li>Restart <code>npm run dev</code>.</li></ol><pre></pre><p class="setup-note">Never prefix client secrets with <code>VITE_</code> or expose them to browser code.</p>`;
+    guide.querySelector("[data-entity-label]")!.textContent = state.entity.label;
+    guide.querySelector("pre")!.textContent = required.map((key) => `${key}=`).join("\n");
+    return guide;
   }
 
   private createHeader(): HTMLElement {
