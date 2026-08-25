@@ -7,8 +7,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@paprel/accounting": "^0.1.0",
+    "@paprel/embed-accounting": "^0.1.0",
     "@paprel/embed-core": "^0.1.0",
-    "@paprel/reports": "^0.1.0"
+    "@paprel/embed-reports": "^0.1.0"
   }
 }

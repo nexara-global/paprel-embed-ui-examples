@@ -1,6 +1,6 @@
 # Paprel real-estate sample
 
-A real-estate accounting application for exploring `@paprel/accounting` with a real App Connect client. Credentials stay in the Vite development server and are never bundled into browser code.
+A real-estate accounting application for exploring `@paprel/embed-accounting` with a real App Connect client. Credentials stay in the Vite development server and are never bundled into browser code.
 
 ## Start
 

@@ -1,6 +1,6 @@
 # Paprel accounting dashboard
 
-A clean local application for exploring `@paprel/accounting` with a real App Connect client. Credentials stay in the Vite development server and are never bundled into browser code.
+A clean local application for exploring `@paprel/embed-accounting` with a real App Connect client. Credentials stay in the Vite development server and are never bundled into browser code.
 
 ## Start
 

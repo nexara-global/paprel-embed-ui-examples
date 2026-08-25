@@ -2,8 +2,8 @@ import {
   configureAccounting,
   refreshEmbedSession,
   type EmbedTokenSet,
-} from "@paprel/accounting";
-import "@paprel/reports";
+} from "@paprel/embed-accounting";
+import "@paprel/embed-reports";
 import { errorMessage, escapeAttribute, escapeHtml, requestEmbedTokens } from "../../shared/browser-utils";
 import "./styles.css";
 
@@ -121,7 +121,7 @@ function renderShell(): void {
         </header>
         <section class="context-strip">
           <div><span>Partner domain</span><strong>${partnerDomain}</strong></div>
-          <div><span>Integration</span><strong>@paprel/accounting</strong></div>
+          <div><span>Integration</span><strong>@paprel/embed-accounting</strong></div>
           <div><span>Styles</span><strong>Inherited theme variables</strong></div>
         </section>
         <section id="embed-surface" class="embed-surface">${viewMarkup(activeView)}</section>

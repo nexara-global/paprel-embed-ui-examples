@@ -1,6 +1,6 @@
 # Paprel Embed UI examples
 
-Standalone reference applications for the public `@paprel/embed-core`, `@paprel/accounting`, and `@paprel/reports` packages.
+Standalone reference applications for the public `@paprel/embed-core`, `@paprel/embed-accounting`, and `@paprel/embed-reports` packages.
 
 These applications demonstrate complete embedded accounting workflows, host-side styling, and a development-only App Connect token exchange. They are intentionally separate from the SDK so they behave like real package consumers.
 
@@ -26,10 +26,10 @@ shared/
 
 ## Local SDK development
 
-Until the packages are published, the root dependencies point to the sibling `../paprel-embed/packages/*` directories. Build the SDK first, then install and run these examples:
+Until the packages are published, the root dependencies point to the sibling `../paprel-embed-ui/packages/*` directories. Build the SDK first, then install and run these examples:
 
 ```bash
-cd ../paprel-embed
+cd ../paprel-embed-ui
 npm install
 npm run build
 
@@ -45,7 +45,7 @@ The real-estate app reuses the accounting dashboard credentials by default. Each
 
 ## Public repository preparation
 
-When the SDK packages are available from npm, replace the four root `file:../paprel-embed/...` dependency values with published semver ranges. The application package manifests already declare `^0.1.0` consumer ranges.
+When the SDK packages are available from npm, replace the four root `file:../paprel-embed-ui/...` dependency values with published semver ranges. The application package manifests already declare `^0.1.0` consumer ranges.
 
 Never commit App Connect client secrets. The included token exchange is a development-only Vite BFF; production deployments require a server-side BFF or serverless function.
 
