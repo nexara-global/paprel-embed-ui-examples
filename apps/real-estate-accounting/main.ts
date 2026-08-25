@@ -3,6 +3,7 @@ import {
   refreshEmbedSession,
   type EmbedTokenSet,
 } from "@paprel/accounting";
+import type { PaprelResourceOpenDetail, PaprelViewChangeDetail, PaprelViewState } from "@paprel/embed-core";
 import "@paprel/reports";
 import { errorMessage, escapeAttribute, escapeHtml, requestEmbedTokens } from "../../shared/browser-utils";
 import "./styles.css";
@@ -14,6 +15,8 @@ type ReportView = "trial-balance" | "balance-sheet" | "income-statement" | "cash
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const partnerDomain = import.meta.env.VITE_PARTNER_DOMAIN || window.location.hostname;
 const hostTheme = { primary: "#744c2f", accent: "#f5eee5", radius: "6px" } as const;
+const entities = parseEntities(import.meta.env.VITE_PAPREL_ENTITIES);
+let activeEntityId = entities[0].id;
 
 let activeView: View = "accounts";
 let selectedAccountId = "";
@@ -24,10 +27,62 @@ let activeReport: ReportView = "trial-balance";
 let expiresAt = 0;
 let connectedCompany: { id: string; name: string; currency?: string } | null = null;
 
+function routeViewState(component: string): PaprelViewState {
+  const prefix = component === "paprel-journal-list" ? "journals" : component === "paprel-transaction-inbox" ? "transactions" : "";
+  if (!prefix) return {};
+  const params = new URL(window.location.href).searchParams;
+  const page = Number(params.get(`${prefix}.page`) ?? 1);
+  const pageSize = Number(params.get(`${prefix}.pageSize`) ?? 25);
+  return {
+    page: Number.isFinite(page) && page > 0 ? page : 1,
+    pageSize: Number.isFinite(pageSize) && pageSize > 0 ? pageSize : 25,
+    search: params.get(`${prefix}.search`) ?? "",
+    tab: params.get(`${prefix}.tab`) ?? undefined,
+  };
+}
+
+function collectionAttributes(component: "paprel-journal-list" | "paprel-transaction-inbox"): string {
+  const state = routeViewState(component);
+  const inbox = component === "paprel-transaction-inbox" && state.tab ? ` inbox="${escapeAttribute(String(state.tab))}"` : "";
+  const search = state.search ? ` search="${escapeAttribute(String(state.search))}"` : "";
+  return `page="${Number(state.page)}" page-size="${Number(state.pageSize)}"${inbox}${search}`;
+}
+
+function syncViewState(detail: PaprelViewChangeDetail): void {
+  const prefix = detail.source.component === "paprel-journal-list" ? "journals" : detail.source.component === "paprel-transaction-inbox" ? "transactions" : "";
+  if (!prefix) return;
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(detail.state)) {
+    const parameter = `${prefix}.${key}`;
+    if (value == null || value === "" || value === false) url.searchParams.delete(parameter);
+    else url.searchParams.set(parameter, Array.isArray(value) ? value.join(",") : String(value));
+  }
+  window.history.replaceState(window.history.state, "", url);
+}
+
 async function getTokens(): Promise<EmbedTokenSet> {
-  const tokens = await requestEmbedTokens();
+  const tokens = await requestEmbedTokens(activeEntityId) as EmbedTokenSet & { companyId?: string };
+  const expectedCompanyId = entities.find((entity) => entity.id === activeEntityId)?.companyId;
+  if (expectedCompanyId && tokens.companyId && tokens.companyId !== expectedCompanyId) {
+    throw new Error(`The ${activeEntityId} App Connect client is mapped to a different Paprel company.`);
+  }
   expiresAt = tokens.expiresAt;
   return tokens;
+}
+
+function parseEntities(value: string | undefined): Array<{ id: string; label: string; companyId?: string }> {
+  const parsed = String(value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const separator = item.indexOf(":");
+      if (separator < 1) return { id: item, label: item };
+      const [id, label, companyId] = item.split(":").map((part) => part.trim());
+      return { id, label, companyId: companyId || undefined };
+    })
+    .filter((entity) => entity.id && entity.label);
+  return parsed.length ? parsed : [{ id: "default", label: "HarborStone" }];
 }
 
 async function loadConnectedCompany(accessToken: string): Promise<void> {
@@ -60,7 +115,7 @@ function viewMarkup(view: View): string {
     case "account-form":
       return `<div class="view-actions"><button data-back="${selectedAccountId ? "account-detail" : "accounts"}">← Back</button></div><paprel-account-form account-id="${escapeAttribute(selectedAccountId)}" currency="USD"></paprel-account-form>`;
     case "journals":
-      return `<div class="view-actions"><span>Review rent, fees, repairs, deposits, and adjustments.</span><button data-journal-new>New property journal</button></div><paprel-journal-list page="1" page-size="25"></paprel-journal-list>`;
+      return `<div class="view-actions"><span>Review rent, fees, repairs, deposits, and adjustments.</span><button data-journal-new>New property journal</button></div><paprel-journal-list ${collectionAttributes("paprel-journal-list")}></paprel-journal-list>`;
     case "journal-detail":
       return `<div class="view-actions"><button data-back="journals">← Journals</button></div><paprel-journal-detail journal-id="${escapeAttribute(selectedJournalId)}"></paprel-journal-detail>`;
     case "journal-form":
@@ -74,7 +129,7 @@ function viewMarkup(view: View): string {
     case "banking-detail":
       return `<div class="view-actions"><button data-back="banking">← Banking</button></div><paprel-bank-account-detail account-id="${escapeAttribute(selectedBankAccountId)}"></paprel-bank-account-detail>`;
     case "transactions":
-      return `<paprel-transaction-inbox inbox="uncategorized" page="1" page-size="25"></paprel-transaction-inbox>`;
+      return `<paprel-transaction-inbox ${collectionAttributes("paprel-transaction-inbox")}></paprel-transaction-inbox>`;
     case "transaction-locks":
       return `<paprel-transaction-locks page="1" page-size="25"></paprel-transaction-locks>`;
   }
@@ -119,7 +174,12 @@ function renderShell(): void {
       <aside class="sidebar">
         <div class="identity">
           <span class="brand-mark">H</span>
-          <div><strong>HarborStone</strong><span>Property portfolio</span></div>
+          <label class="entity-switcher">
+            <span>Portfolio company</span>
+            <select id="company-switcher" aria-label="Portfolio company">
+              ${entities.map((entity) => `<option value="${escapeAttribute(entity.id)}"${entity.id === activeEntityId ? " selected" : ""}>${escapeHtml(entity.label)}</option>`).join("")}
+            </select>
+          </label>
         </div>
         <nav aria-label="Property accounting">
           ${nav.map((item) => `<button class="nav-item${navActive(item.id) ? " is-active" : ""}" data-view="${item.id}">
@@ -173,6 +233,39 @@ function applyHostTheme(): void {
 }
 
 function wireShell(): void {
+  document.querySelector("#embed-surface")?.addEventListener("paprel:view-change", (event) => {
+    syncViewState((event as CustomEvent<PaprelViewChangeDetail>).detail);
+  });
+  document.querySelector("#embed-surface")?.addEventListener("paprel:resource-open", (event) => {
+    const resourceEvent = event as CustomEvent<PaprelResourceOpenDetail>;
+    const { resource, id } = resourceEvent.detail;
+    resourceEvent.preventDefault();
+    if (resource === "account") {
+      selectedAccountId = id;
+      navigate("account-detail");
+    } else if (resource === "journal") {
+      selectedJournalId = id;
+      navigate("journal-detail");
+    } else if (resource === "bank-account") {
+      selectedBankAccountId = id;
+      navigate("banking-detail");
+    }
+  });
+
+  document.querySelector<HTMLSelectElement>("#company-switcher")?.addEventListener("change", async (event) => {
+    const select = event.currentTarget as HTMLSelectElement;
+    const previous = activeEntityId;
+    select.disabled = true;
+    try {
+      await switchEntity(select.value);
+    } catch (error) {
+      activeEntityId = previous;
+      select.value = previous;
+      select.disabled = false;
+      window.alert(errorMessage(error, "Unable to switch company"));
+    }
+  });
+
   document.querySelectorAll<HTMLButtonElement>("[data-view]").forEach((button) => {
     button.addEventListener("click", () => {
       navigate(button.dataset.view as View);
@@ -184,18 +277,10 @@ function wireShell(): void {
   document.querySelector<HTMLButtonElement>("[data-account-new]")?.addEventListener("click", () => { selectedAccountId = ""; navigate("account-form"); });
   document.querySelector<HTMLButtonElement>("[data-journal-new]")?.addEventListener("click", () => { selectedJournalId = ""; journalMode = "create"; navigate("journal-form"); });
 
-  document.querySelector("paprel-chart-of-accounts")?.addEventListener("account-select", (event) => {
-    selectedAccountId = (event as CustomEvent<{ accountId: string }>).detail.accountId;
-    navigate("account-detail");
-  });
   document.querySelector("paprel-account-detail")?.addEventListener("account-action", () => navigate("account-form"));
   document.querySelector("paprel-account-form")?.addEventListener("account-saved", (event) => {
     selectedAccountId = String((event as CustomEvent<{ account: { id?: string } }>).detail.account.id || selectedAccountId);
     navigate(selectedAccountId ? "account-detail" : "accounts");
-  });
-  document.querySelector("paprel-journal-list")?.addEventListener("journal-select", (event) => {
-    selectedJournalId = (event as CustomEvent<{ journalId: string }>).detail.journalId;
-    navigate("journal-detail");
   });
   const onJournalAction = (event: Event) => {
     const detail = (event as CustomEvent<{ action: JournalMode; journalId: string }>).detail;
@@ -210,11 +295,6 @@ function wireShell(): void {
     selectedJournalId = String((event as CustomEvent<{ journal: { id?: string } }>).detail.journal.id || selectedJournalId);
     navigate(selectedJournalId ? "journal-detail" : "journals");
   });
-  document.querySelector("paprel-banking-list")?.addEventListener("bank-account-select", (event) => {
-    selectedBankAccountId = (event as CustomEvent<{ accountId: string }>).detail.accountId;
-    navigate("banking-detail");
-  });
-
   document.querySelector<HTMLButtonElement>("#refresh-session")?.addEventListener("click", async (event) => {
     const button = event.currentTarget as HTMLButtonElement;
     button.disabled = true;
@@ -229,6 +309,33 @@ function wireShell(): void {
   });
 }
 
+async function switchEntity(entityId: string): Promise<void> {
+  if (entityId === activeEntityId) return;
+  activeEntityId = entityId;
+  connectedCompany = null;
+  selectedAccountId = "";
+  selectedJournalId = "";
+  selectedBankAccountId = "";
+  activeView = "accounts";
+  const initial = await getTokens();
+  await loadConnectedCompany(initial.accessToken);
+  configureSession();
+  renderShell();
+}
+
+function configureSession(): void {
+  configureAccounting({
+    baseUrl: "",
+    locale: "en",
+    auth: {
+      partnerDomain,
+      getTokens,
+      onTokensUpdated(tokens) { expiresAt = tokens.expiresAt; updateExpiry(); },
+      onSessionExpired() { app.innerHTML = `<main class="boot-card error"><h1>Session expired</h1><p>Refresh the page to reconnect.</p></main>`; },
+    },
+  });
+}
+
 function updateExpiry(): void {
   const el = document.querySelector("#token-expiry");
   if (!el || !expiresAt) return;
@@ -240,16 +347,7 @@ async function bootstrap(): Promise<void> {
   try {
     const initial = await getTokens();
     await loadConnectedCompany(initial.accessToken);
-    configureAccounting({
-      baseUrl: "",
-      locale: "en",
-      auth: {
-        partnerDomain,
-        getTokens,
-        onTokensUpdated(tokens) { expiresAt = tokens.expiresAt; updateExpiry(); },
-        onSessionExpired() { app.innerHTML = `<main class="boot-card error"><h1>Session expired</h1><p>Refresh the page to reconnect.</p></main>`; },
-      },
-    });
+    configureSession();
     expiresAt = initial.expiresAt;
     renderShell();
   } catch (error) {

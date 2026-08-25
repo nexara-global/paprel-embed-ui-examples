@@ -15,11 +15,25 @@ The app automatically reuses `apps/accounting-dashboard/.env.local`, so the work
 
 This sample represents one embedded entity. In a multi-entity host, bind each entity to its own server-side App Connect client credentials instead of switching entities with browser-side state.
 
+## Multi-entity switcher
+
+Set `VITE_PAPREL_ENTITIES` to browser-safe entity keys and labels, then provide a distinct server-side App Connect client for every additional entity:
+
+```env
+VITE_PAPREL_ENTITIES=default:HarborStone:019126e9-ef58-7c83-a0a4-69f073468de2,anotherstone:AnotherStone:019e2223-3a00-78d3-be7a-6477af6bd32a
+APP_CONNECT_ENTITY_ANOTHERSTONE_CLIENT_ID=PLC_…
+APP_CONNECT_ENTITY_ANOTHERSTONE_CLIENT_SECRET=PLS_…
+```
+
+Each entry is `key:label:expected-company-id`. The entity key selects credentials only inside the development BFF, and the expected company ID guards against an accidentally swapped client. Secrets never enter the browser bundle. Switching entity obtains a new JWT, resets the current view, and reloads all components under the selected company context.
+
 Open http://localhost:5181.
 
 Run `npm run build` from the repository root to verify every example application.
 
 The app includes account list/detail/create/edit and journal list/detail/create/edit/copy/reverse workflows; a complete reports module (trial balance, balance sheet, income statement, cash flow, and general ledger); plus banking, transactions, and reconciliation. The client must have scopes for the screens and actions you intend to use. A screen with a missing scope will return the expected 403 state.
+
+The shell owns navigation through one delegated `paprel:resource-open` listener. It also handles `paprel:view-change` and mirrors journal and transaction search, tab, and pagination state into namespaced URL parameters. This demonstrates router integration without requiring a router inside the Paprel components.
 
 ## Customize the host style
 

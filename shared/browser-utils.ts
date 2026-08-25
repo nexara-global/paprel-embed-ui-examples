@@ -15,8 +15,9 @@ export function escapeAttribute(value: string): string {
   return escapeHtml(value);
 }
 
-export async function requestEmbedTokens(): Promise<EmbedTokenSet> {
-  const response = await fetch("/api/embed-token", { credentials: "include" });
+export async function requestEmbedTokens(entityId = "default"): Promise<EmbedTokenSet> {
+  const query = new URLSearchParams({ entity: entityId });
+  const response = await fetch(`/api/embed-token?${query}`, { credentials: "include" });
   const body = (await response.json().catch(() => ({}))) as Partial<EmbedTokenResponse>;
 
   if (!response.ok || !body.accessToken || !body.expiresAt) {

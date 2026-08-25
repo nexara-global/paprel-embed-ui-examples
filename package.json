@@ -18,10 +18,10 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@paprel/accounting": "file:../paprel-embed/packages/accounting",
-    "@paprel/embed-core": "file:../paprel-embed/packages/core",
-    "@paprel/reports": "file:../paprel-embed/packages/reports",
-    "@paprel/ui": "file:../paprel-embed/packages/ui"
+    "@paprel/accounting": "file:../paprel-embed-ui/packages/accounting",
+    "@paprel/embed-core": "file:../paprel-embed-ui/packages/core",
+    "@paprel/reports": "file:../paprel-embed-ui/packages/reports",
+    "@paprel/ui": "file:../paprel-embed-ui/packages/ui"
   },
   "devDependencies": {
     "vite": "^6.4.3"
