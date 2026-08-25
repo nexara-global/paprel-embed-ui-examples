@@ -1,12 +1,23 @@
 import type { PaprelOperationSuccessDetail, PaprelResourceOpenDetail, PaprelViewChangeDetail } from "@paprel/embed-core";
 import type { Router } from "../router";
 
-export function connectPaprelEvents(root: HTMLElement, router: Router, notify: (message: string) => void): () => void {
+type PaprelEventHandlers = {
+  notify(message: string): void;
+  openTransactionMatches(id: string): void;
+  transactionResolved(): void;
+};
+
+export function connectPaprelEvents(root: HTMLElement, router: Router, handlers: PaprelEventHandlers): () => void {
   const resourceOpen = (event: Event) => {
     const custom = event as CustomEvent<PaprelResourceOpenDetail>;
     const { resource, id } = custom.detail;
     const target = resource === "account" ? `/accounts/${id}` : resource === "journal" ? `/journals/${id}`
-      : resource === "bank-account" ? `/banking/${id}` : resource === "transaction" ? `/transactions/${id}` : null;
+      : resource === "bank-account" ? `/banking/${id}` : null;
+    if (resource === "transaction") {
+      custom.preventDefault();
+      handlers.openTransactionMatches(id);
+      return;
+    }
     if (target) { custom.preventDefault(); router.navigate(target); }
   };
   const viewChange = (event: Event) => {
@@ -27,16 +38,16 @@ export function connectPaprelEvents(root: HTMLElement, router: Router, notify: (
     const id = String((event as CustomEvent<{ journal: { id?: string } }>).detail.journal.id ?? "");
     router.navigate(id ? `/journals/${id}` : "/journals");
   };
-  const operationSuccess = (event: Event) => notify((event as CustomEvent<PaprelOperationSuccessDetail>).detail.message);
+  const operationSuccess = (event: Event) => handlers.notify((event as CustomEvent<PaprelOperationSuccessDetail>).detail.message);
   const listeners: Array<[string, EventListener]> = [
     ["paprel:resource-open", resourceOpen as EventListener], ["paprel:view-change", viewChange as EventListener],
     ["paprel:operation-success", operationSuccess as EventListener],
     ["account-action", accountAction], ["account-saved", accountSaved as EventListener],
     ["journal-action", journalAction as EventListener], ["journal-saved", journalSaved as EventListener],
     ["journal-deleted", () => router.navigate("/journals")],
-    ["transaction-matched", () => router.navigate("/transactions")],
-    ["transaction-excluded", () => router.navigate("/transactions")],
-    ["transaction-restored", () => router.navigate("/transactions")],
+    ["transaction-matched", handlers.transactionResolved],
+    ["transaction-excluded", handlers.transactionResolved],
+    ["transaction-restored", handlers.transactionResolved],
   ];
   listeners.forEach(([name, listener]) => root.addEventListener(name, listener));
   return () => listeners.forEach(([name, listener]) => root.removeEventListener(name, listener));
