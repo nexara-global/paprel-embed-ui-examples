@@ -72,7 +72,14 @@ export class App {
         this.status = this.createSetupGuide(state);
       } else {
         this.status.className = `boot-card inline${state.error ? " error" : ""}`;
-        this.status.innerHTML = state.error ? `<p class="eyebrow">Connection failed</p><h2>Unable to open this company</h2><p>${state.error}</p>` : `<p class="eyebrow">Paprel connection</p><h2>Opening the property ledger</h2><p>Exchanging an App Connect token securely…</p>`;
+        const eyebrow = document.createElement("p");
+        eyebrow.className = "eyebrow";
+        eyebrow.textContent = state.error ? "Connection failed" : "Paprel connection";
+        const heading = document.createElement("h2");
+        heading.textContent = state.error ? "Unable to open this company" : "Opening the property ledger";
+        const detail = document.createElement("p");
+        detail.textContent = state.error || "Exchanging an App Connect token securely…";
+        this.status.replaceChildren(eyebrow, heading, detail);
       }
       this.workspace.append(this.status);
     } else {
@@ -95,7 +102,14 @@ export class App {
   private createHeader(): HTMLElement {
     const header = document.createElement("header");
     header.className = "topbar";
-    header.innerHTML = `<div><p class="eyebrow">Real-estate accounting</p><h1>${titleFor(window.location.pathname)}</h1></div>`;
+    const copy = document.createElement("div");
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "Real-estate accounting";
+    const heading = document.createElement("h1");
+    heading.textContent = titleFor(window.location.pathname);
+    copy.append(eyebrow, heading);
+    header.append(copy);
     return header;
   }
 

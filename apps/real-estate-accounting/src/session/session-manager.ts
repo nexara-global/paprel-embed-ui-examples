@@ -16,7 +16,10 @@ export type SessionState = {
 type Listener = (state: Readonly<SessionState>) => void;
 
 async function requestTokens(entityId: string): Promise<EmbedTokenSet & { companyId?: string }> {
-  const response = await fetch(`/api/embed-token?entity=${encodeURIComponent(entityId)}`, { method: "POST" });
+  const response = await fetch(`/api/embed-token?entity=${encodeURIComponent(entityId)}`, {
+    method: "POST",
+    credentials: "include",
+  });
   const body = await response.json() as Record<string, unknown>;
   if (!response.ok) {
     if (body.code === "APP_CONNECT_NOT_CONFIGURED") {

@@ -18,20 +18,10 @@ This repository intentionally contains one complete application rather than seve
 
 ## Run locally
 
-Build and register the adjacent SDK packages, then link them into this application:
+Install the published beta packages and start the application:
 
 ```bash
-cd ../paprel-embed-ui
 npm install
-npm run build
-npm link -w @paprel/embed-core
-npm link -w @paprel/embed-ui
-npm link -w @paprel/embed-accounting
-npm link -w @paprel/embed-reports
-
-cd ../paprel-embed-ui-examples
-npm install
-npm link @paprel/embed-core @paprel/embed-ui @paprel/embed-accounting @paprel/embed-reports
 cp apps/real-estate-accounting/.env.example apps/real-estate-accounting/.env.local
 npm run dev
 ```
@@ -46,7 +36,17 @@ The Vite plugin in `apps/real-estate-accounting/server/embed-token-bff.ts` exist
 
 Client secrets must never use a `VITE_` prefix, appear in frontend code, or be returned to the browser. Configure history fallback to `index.html` for application routes such as `/journals/:id` and `/banking/:id`.
 
+The local token endpoint intentionally has no partner-user session because it runs only inside Vite development. A production BFF must authenticate and authorize the partner user before selecting an entity or issuing an embed token.
+
 See the [SDK integration documentation](https://github.com/nexara-global/paprel-embed-ui/tree/main/docs/partner-integration) for the complete BFF contract.
+
+## SDK contributors
+
+The npm packages are the default integration path. Contributors changing the SDK and this example together may temporarily use `npm link` from a sibling `paprel-embed-ui` checkout; do not commit link or `file:` dependency changes.
+
+## Security and license
+
+Report vulnerabilities according to [SECURITY.md](SECURITY.md). This repository is available under the [MIT License](LICENSE).
 
 ## No warranty or liability
 

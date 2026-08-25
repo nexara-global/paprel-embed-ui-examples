@@ -49,21 +49,6 @@ function reports(report: string): HTMLElement {
   return wrapper;
 }
 
-function transactionWorkbench(id: string): HTMLElement {
-  const workbench = document.createElement("div");
-  workbench.className = "transaction-workbench";
-  const transaction = document.createElement("section");
-  transaction.className = "transaction-review-panel";
-  transaction.append(embedElement("paprel-transaction-detail", { "transaction-id": id }));
-  const matches = document.createElement("section");
-  matches.className = "transaction-review-panel transaction-match-panel";
-  const heading = document.createElement("h2");
-  heading.textContent = "Suggested matches";
-  matches.append(heading, embedElement("paprel-transaction-match-sheet", { "transaction-id": id }));
-  workbench.append(transaction, matches);
-  return view(back("/transactions"), workbench);
-}
-
 function transactionLocksPage(): HTMLElement {
   const locks = embedElement("paprel-transaction-locks", { page: 1, "page-size": 25 });
   const actionRow = document.createElement("div");
@@ -91,8 +76,6 @@ export function renderPage(path: string, query: URLSearchParams): Match {
   if ((match = path.match(/^\/reports\/([^/]+)$/))) return { params: { report: match[1] }, element: reports(match[1]) };
   if (path === "/banking") return { params: {}, element: view(embedElement("paprel-banking-list")) };
   if ((match = path.match(/^\/banking\/([^/]+)$/))) return { params: { id: match[1] }, element: view(back("/banking"), embedElement("paprel-bank-account-detail", { "account-id": match[1] })) };
-  if (path === "/transactions") return { params: {}, element: view(embedElement("paprel-transaction-inbox", collectionProps("paprel-transaction-inbox", query))) };
-  if ((match = path.match(/^\/transactions\/([^/]+)$/))) return { params: { id: match[1] }, element: transactionWorkbench(match[1]) };
   if (path === "/transaction-locks") return { params: {}, element: transactionLocksPage() };
   return { params: {}, element: view() };
 }
@@ -105,7 +88,7 @@ export function titleFor(path: string): string {
     [/^\/accounts\/new$/, "New account"], [/^\/accounts\//, "Account detail"], [/^\/accounts$/, "Chart of Accounts"],
     [/^\/journals\/new$/, "New journal"], [/^\/journals\//, "Journal detail"], [/^\/journals$/, "Journals"],
     [/^\/reports/, "Reports"], [/^\/banking\//, "Bank account detail"], [/^\/banking$/, "Banking"],
-    [/^\/transactions\//, "Transaction detail"], [/^\/transactions$/, "Transactions"], [/^\/transaction-locks$/, "Transaction locks"],
+    [/^\/transaction-locks$/, "Transaction locks"],
   ];
   return titles.find(([pattern]) => pattern.test(path))?.[1] ?? "Accounting";
 }

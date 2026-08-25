@@ -143,9 +143,10 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
 
           const raw = await tokenRes.text();
           if (!tokenRes.ok) {
+            console.error(`Paprel token exchange failed with status ${tokenRes.status}:`, raw);
             res.statusCode = tokenRes.status;
             res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Token exchange failed", status: tokenRes.status, body: raw }));
+            res.end(JSON.stringify({ error: "Token exchange failed", code: "APP_CONNECT_TOKEN_EXCHANGE_FAILED" }));
             return;
           }
 

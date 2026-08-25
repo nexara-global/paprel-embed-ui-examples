@@ -85,10 +85,6 @@ nav { display: grid; gap: 2px; margin-top: 8px; }
 .report-tabs { display: flex; gap: 5px; overflow-x: auto; margin-bottom: 12px; padding-bottom: 2px; }
 .report-tabs a { min-height: 30px; display: inline-flex; align-items: center; white-space: nowrap; border: 1px solid #ded8d0; border-radius: 999px; background: #fff; color: #53605a; padding: 0 10px; cursor: pointer; font-size: 12px; font-weight: 650; text-decoration: none; }
 .report-tabs a.is-active { border-color: var(--paprel-color-primary); background: var(--paprel-color-surface-muted); color: var(--paprel-color-primary); }
-.transaction-workbench { display: grid; grid-template-columns: minmax(0, .8fr) minmax(340px, 1.2fr); gap: 28px; align-items: start; }
-.transaction-review-panel { min-width: 0; padding-top: 16px; border-top: 1px solid var(--paprel-color-border-subtle); }
-.transaction-review-panel > h2 { margin: 0 0 16px; font-size: 15px; letter-spacing: -.015em; }
-
 .boot-card { width: min(520px, calc(100% - 40px)); margin: 15vh auto; padding: 36px; border: 1px solid #dce2de; border-radius: 18px; background: #fff; box-shadow: 0 24px 60px rgb(23 33 29 / 10%); }
 .boot-card h1 { margin: 18px 0 8px; letter-spacing: -.035em; }
 .boot-card p { color: #68736e; }
@@ -118,5 +114,4 @@ nav { display: grid; gap: 2px; margin-top: 8px; }
   .connected-card { display: none; }
   .workspace { width: 100%; overflow: hidden; }
   .topbar { align-items: flex-start; flex-direction: column; }
-  .transaction-workbench { grid-template-columns: minmax(0, 1fr); }
 }
