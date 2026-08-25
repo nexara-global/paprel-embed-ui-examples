@@ -30,7 +30,7 @@ button, select { font: inherit; }
 .sidebar { position: sticky; top: 0; height: 100vh; min-height: 0; overflow-y: auto; background: #2f241d; color: #fff; padding: 18px 16px; display: flex; flex-direction: column; gap: 14px; }
 .identity { display: flex; align-items: center; gap: 12px; padding: 0 8px; }
 .identity div, .connection-copy { display: grid; gap: 2px; }
-.identity span:not(.brand-mark), .connection-card span { color: #a9b5af; font-size: 12px; }
+.identity span:not(.brand-mark), .connected-card span { color: #a9b5af; font-size: 12px; }
 .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #d7b98e; color: #2f241d; font-weight: 800; }
 .entity-switcher { min-width: 0; flex: 1; display: grid; gap: 2px; }
 .entity-switcher > span { color: #89958f !important; font-size: 8px !important; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
@@ -44,27 +44,23 @@ nav { display: grid; gap: 2px; margin-top: 8px; }
 .nav-item:hover { background: #22302a; }
 .nav-item.is-active { color: #2f241d; background: #d7b98e; }
 .nav-item.is-active small { color: #536047; }
-.sidebar-footer { display: grid; gap: 6px; margin-top: auto; padding-top: 4px; }
-.config-card { overflow: hidden; margin: 0 4px; border: 1px solid #4d3d32; border-radius: 8px; background: #352920; }
-.config-card div { display: grid; gap: 1px; padding: 6px 10px; border-bottom: 1px solid #4d3d32; }
-.config-card div:last-child { border-bottom: 0; }
-.config-card span { color: #a9988a; font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.config-card strong { overflow: hidden; color: #e9ded4; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.config-card .company-context { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 8px; padding: 10px; }
+.sidebar-footer { margin-top: auto; padding: 4px 4px 0; }
+.connected-card { overflow: hidden; border: 1px solid #435047; border-radius: 10px; background: #352920; box-shadow: 0 8px 24px rgb(18 12 8 / 12%); }
+.connected-card strong { overflow: hidden; color: #e9ded4; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.connected-card .company-context { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 5px 9px; padding: 11px 10px 9px; }
 .company-mark { grid-row: 1; display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; background: #d7b98e; color: #2f241d !important; font-size: 11px !important; font-weight: 800; }
 .company-copy { min-width: 0; display: grid; gap: 1px; }
 .company-label { display: flex; align-items: center; gap: 5px; color: #a9988a !important; font-size: 8px !important; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .company-label i { width: 5px; height: 5px; border-radius: 50%; background: #8de69f; box-shadow: 0 0 0 2px rgb(141 230 159 / 10%); }
 .company-copy strong { font-size: 11px; }
 .company-copy small { overflow: hidden; color: #a9b5af; font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.company-id { grid-column: 1 / -1; display: grid; gap: 3px; margin-top: 4px; padding: 7px 8px; border-radius: 6px; background: #2d221c; }
+.company-id { grid-column: 1 / -1; display: grid; gap: 2px; margin-top: 4px; padding: 6px 8px; border-radius: 6px; background: #2d221c; }
 .company-id > span { color: #8f7f72; font-size: 7px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
 .company-id code { color: #c3b3a5; font: 7.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
-.connection-card { border: 1px solid #34443c; border-radius: 9px; padding: 7px 8px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.connection-footer { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 8px 8px 10px; border-top: 1px solid #4d3d32; background: rgb(45 34 28 / 55%); }
 .connection-copy { min-width: 0; }
-.connection-copy strong { font-size: 11px; line-height: 1.2; }
-.connection-card .connection-copy span { font-size: 9px; line-height: 1.25; }
-.status-dot { width: 7px; height: 7px; border-radius: 50%; background: #8de69f; box-shadow: 0 0 0 3px rgb(141 230 159 / 12%); }
+.connection-copy strong { font-size: 9px; line-height: 1.2; }
+.connected-card .connection-copy span { font-size: 8px; line-height: 1.25; }
 
 .workspace { min-width: 0; padding: 30px clamp(20px, 4vw, 56px) 56px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
@@ -94,7 +90,7 @@ nav { display: grid; gap: 2px; margin-top: 8px; }
   .sidebar nav { width: 100%; min-width: 0; display: flex; overflow-x: auto; overscroll-behavior-inline: contain; }
   .nav-item { min-width: 150px; }
   .sidebar-footer { margin-top: 0; padding-top: 0; }
-  .config-card, .connection-card { display: none; }
+  .connected-card { display: none; }
   .workspace { width: 100%; overflow: hidden; }
   .topbar { align-items: flex-start; flex-direction: column; }
 }
