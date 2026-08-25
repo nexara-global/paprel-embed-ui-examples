@@ -34,6 +34,9 @@ export function connectPaprelEvents(root: HTMLElement, router: Router, notify: (
     ["account-action", accountAction], ["account-saved", accountSaved as EventListener],
     ["journal-action", journalAction as EventListener], ["journal-saved", journalSaved as EventListener],
     ["journal-deleted", () => router.navigate("/journals")],
+    ["transaction-matched", () => router.navigate("/transactions")],
+    ["transaction-excluded", () => router.navigate("/transactions")],
+    ["transaction-restored", () => router.navigate("/transactions")],
   ];
   listeners.forEach(([name, listener]) => root.addEventListener(name, listener));
   return () => listeners.forEach(([name, listener]) => root.removeEventListener(name, listener));

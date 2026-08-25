@@ -49,6 +49,21 @@ function reports(report: string): HTMLElement {
   return wrapper;
 }
 
+function transactionWorkbench(id: string): HTMLElement {
+  const workbench = document.createElement("div");
+  workbench.className = "transaction-workbench";
+  const transaction = document.createElement("section");
+  transaction.className = "transaction-review-panel";
+  transaction.append(embedElement("paprel-transaction-detail", { "transaction-id": id }));
+  const matches = document.createElement("section");
+  matches.className = "transaction-review-panel transaction-match-panel";
+  const heading = document.createElement("h2");
+  heading.textContent = "Suggested matches";
+  matches.append(heading, embedElement("paprel-transaction-match-sheet", { "transaction-id": id }));
+  workbench.append(transaction, matches);
+  return view(back("/transactions"), workbench);
+}
+
 export function renderPage(path: string, query: URLSearchParams): Match {
   let match: RegExpMatchArray | null;
   if (path === "/accounts") return { params: {}, element: view(actions("Property income, deposits, liabilities, and operating costs.", "/accounts/new", "New portfolio account"), embedElement("paprel-chart-of-accounts")) };
@@ -64,7 +79,7 @@ export function renderPage(path: string, query: URLSearchParams): Match {
   if (path === "/banking") return { params: {}, element: view(embedElement("paprel-banking-list")) };
   if ((match = path.match(/^\/banking\/([^/]+)$/))) return { params: { id: match[1] }, element: view(back("/banking"), embedElement("paprel-bank-account-detail", { "account-id": match[1] })) };
   if (path === "/transactions") return { params: {}, element: view(embedElement("paprel-transaction-inbox", collectionProps("paprel-transaction-inbox", query))) };
-  if ((match = path.match(/^\/transactions\/([^/]+)$/))) return { params: { id: match[1] }, element: view(back("/transactions"), embedElement("paprel-transaction-detail", { "transaction-id": match[1] })) };
+  if ((match = path.match(/^\/transactions\/([^/]+)$/))) return { params: { id: match[1] }, element: transactionWorkbench(match[1]) };
   if (path === "/transaction-locks") return { params: {}, element: view(embedElement("paprel-transaction-locks", { page: 1, "page-size": 25 })) };
   return { params: {}, element: view() };
 }
