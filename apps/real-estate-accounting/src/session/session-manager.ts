@@ -64,6 +64,8 @@ export class SessionManager {
 
   async start(): Promise<void> { await this.connect(this.state.entity); }
 
+  async reconnect(): Promise<void> { await this.connect(this.state.entity); }
+
   async switchEntity(id: string): Promise<void> {
     const next = this.state.entityOptions.find((entity) => entity.id === id);
     if (next && next.id !== this.state.entity.id) await this.connect(next);
@@ -75,7 +77,7 @@ export class SessionManager {
   }
 
   private async connect(entity: EntityConfig): Promise<void> {
-    this.patch({ ready: false, error: "", company: null, setup: null });
+    this.patch({ ready: false, error: "", company: null, entity, expiresAt: 0, setup: null });
     try {
       const initial = await requestTokens(entity.id);
       if (entity.companyId && initial.companyId && entity.companyId !== initial.companyId) {
