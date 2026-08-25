@@ -38,7 +38,22 @@ export class App {
     if (path === "/") { this.router.navigate("/accounts", true); return; }
     const { element } = renderPage(path, query);
     if (!element.childNodes.length) { this.router.navigate("/accounts", true); return; }
-    this.workspace.querySelector("h1")!.textContent = titleFor(path);
+    const header = this.workspace.querySelector<HTMLElement>(".topbar")!;
+    header.querySelector(".header-action")?.remove();
+    header.querySelector("h1")!.textContent = titleFor(path);
+    const primaryAction = element.querySelector<HTMLAnchorElement>(".view-actions .action-link");
+    if (primaryAction) {
+      const actionRow = primaryAction.closest<HTMLElement>(".view-actions");
+      const intro = actionRow?.querySelector<HTMLElement>("span");
+      primaryAction.classList.add("header-action");
+      header.append(primaryAction);
+      if (intro) {
+        intro.className = "page-intro";
+        actionRow?.replaceWith(intro);
+      } else {
+        actionRow?.remove();
+      }
+    }
     this.surface.replaceChildren(element);
   }
 

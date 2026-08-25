@@ -67,12 +67,14 @@ nav { display: grid; gap: 2px; margin-top: 8px; }
 .workspace { min-width: 0; padding: 30px clamp(20px, 4vw, 56px) 56px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .topbar h1 { margin: 2px 0 0; font-size: clamp(28px, 3vw, 40px); letter-spacing: -.04em; }
+.topbar .header-action { flex: 0 0 auto; align-self: flex-end; }
 .eyebrow { margin: 0; color: #6d7872; font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .refresh-button { min-height: 26px; border: 1px solid #59483c; border-radius: 6px; background: #3a2c24; color: #fff; padding: 0 7px; cursor: pointer; font-size: 9px; font-weight: 650; }
 .refresh-button:hover { border-color: #8c7564; background: #46362b; }
 .refresh-button:disabled { opacity: .55; }
 .embed-surface { min-width: 0; }
 .view-actions { min-height: 44px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #6d7872; font-size: 13px; }
+.page-intro { display: block; margin: 0 0 18px; color: #6d7872; font-size: 13px; }
 .action-link, .back-link { min-height: 38px; display: inline-flex; align-items: center; border: 1px solid #d7ded9; border-radius: 9px; background: #fff; color: #25302b; padding: 0 13px; cursor: pointer; font-weight: 650; text-decoration: none; }
 .action-link:hover, .back-link:hover { border-color: var(--paprel-color-primary); color: var(--paprel-color-primary); }
 .report-stack { display: grid; gap: 20px; }
