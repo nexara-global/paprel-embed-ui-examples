@@ -64,6 +64,19 @@ function transactionWorkbench(id: string): HTMLElement {
   return view(back("/transactions"), workbench);
 }
 
+function transactionLocksPage(): HTMLElement {
+  const locks = embedElement("paprel-transaction-locks", { page: 1, "page-size": 25 });
+  const actionRow = document.createElement("div");
+  actionRow.className = "view-actions";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "action-link";
+  button.textContent = "New lock";
+  button.addEventListener("click", () => (locks as HTMLElement & { openCreate(): void }).openCreate());
+  actionRow.append(button);
+  return view(actionRow, locks);
+}
+
 export function renderPage(path: string, query: URLSearchParams): Match {
   let match: RegExpMatchArray | null;
   if (path === "/accounts") return { params: {}, element: view(actions("Property income, deposits, liabilities, and operating costs.", "/accounts/new", "New portfolio account"), embedElement("paprel-chart-of-accounts")) };
@@ -80,7 +93,7 @@ export function renderPage(path: string, query: URLSearchParams): Match {
   if ((match = path.match(/^\/banking\/([^/]+)$/))) return { params: { id: match[1] }, element: view(back("/banking"), embedElement("paprel-bank-account-detail", { "account-id": match[1] })) };
   if (path === "/transactions") return { params: {}, element: view(embedElement("paprel-transaction-inbox", collectionProps("paprel-transaction-inbox", query))) };
   if ((match = path.match(/^\/transactions\/([^/]+)$/))) return { params: { id: match[1] }, element: transactionWorkbench(match[1]) };
-  if (path === "/transaction-locks") return { params: {}, element: view(embedElement("paprel-transaction-locks", { page: 1, "page-size": 25 })) };
+  if (path === "/transaction-locks") return { params: {}, element: transactionLocksPage() };
   return { params: {}, element: view() };
 }
 

@@ -49,7 +49,7 @@ export class App {
     const header = this.workspace.querySelector<HTMLElement>(".topbar")!;
     header.querySelector(".header-action")?.remove();
     header.querySelector("h1")!.textContent = titleFor(path);
-    const primaryAction = element.querySelector<HTMLAnchorElement>(".view-actions .action-link");
+    const primaryAction = element.querySelector<HTMLElement>(".view-actions .action-link");
     if (primaryAction) {
       const actionRow = primaryAction.closest<HTMLElement>(".view-actions");
       const intro = actionRow?.querySelector<HTMLElement>("span");
