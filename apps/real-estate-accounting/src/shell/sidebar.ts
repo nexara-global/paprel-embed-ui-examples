@@ -34,10 +34,10 @@ function updateSidebar(aside: HTMLElement, state: Readonly<SessionState>): void 
   const hasError = Boolean(state.error);
   const name = state.company?.name || (isSetup ? state.entity.label : hasError ? "Connection unavailable" : "Connecting…");
   const card = aside.querySelector<HTMLElement>(".connected-card")!;
-  card.classList.toggle("is-connected", state.ready);
+  card.classList.toggle("is-connected", state.ready && !state.expired);
   card.classList.toggle("needs-setup", isSetup);
   card.classList.toggle("has-error", hasError && !isSetup);
-  aside.querySelector("[data-connection-label]")!.textContent = state.ready ? "Paprel connected" : isSetup ? "Setup required" : hasError ? "Connection issue" : "Paprel connection";
+  aside.querySelector("[data-connection-label]")!.textContent = state.expired ? "Session expired" : state.ready ? "Paprel connected" : isSetup ? "Setup required" : hasError ? "Connection issue" : "Paprel connection";
   aside.querySelector("[data-company-mark]")!.textContent = name.slice(0, 1).toUpperCase();
   aside.querySelector("[data-company-name]")!.textContent = name;
   aside.querySelector("[data-currency]")!.textContent = state.company?.currency || (isSetup ? "App Connect credentials missing" : hasError ? "Unable to authenticate" : "Establishing secure session");
@@ -45,8 +45,8 @@ function updateSidebar(aside: HTMLElement, state: Readonly<SessionState>): void 
   idWrap.hidden = !state.company?.id;
   aside.querySelector("[data-company-id]")!.textContent = state.company?.id || "";
   const minutes = state.expiresAt ? Math.max(1, Math.round((state.expiresAt - Date.now()) / 60_000)) : 0;
-  aside.querySelector("[data-session-label]")!.textContent = state.ready ? "Session active" : isSetup ? "Not connected" : hasError ? "Session unavailable" : "Connecting";
-  aside.querySelector("[data-expiry]")!.textContent = state.ready ? (minutes ? `Auto-renews · ${minutes}m` : "Auto-renews") : isSetup ? "Configure server environment" : hasError ? "Retry connection" : "Please wait";
+  aside.querySelector("[data-session-label]")!.textContent = state.expired ? "Session expired" : state.ready ? "Session active" : isSetup ? "Not connected" : hasError ? "Session unavailable" : "Connecting";
+  aside.querySelector("[data-expiry]")!.textContent = state.expired ? "Reconnect to continue" : state.ready ? (minutes ? `Auto-renews · ${minutes}m` : "Auto-renews") : isSetup ? "Configure server environment" : hasError ? "Retry connection" : "Please wait";
   const refresh = aside.querySelector<HTMLButtonElement>("[data-refresh]")!;
   refresh.disabled = state.refreshing || (!state.ready && !hasError);
   refresh.textContent = state.refreshing ? (state.ready ? "Refreshing…" : "Retrying…") : state.ready ? "Refresh" : "Retry";
