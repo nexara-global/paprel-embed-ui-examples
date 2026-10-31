@@ -1,6 +1,6 @@
 # Paprel Embed UI reference application
 
-A production-shaped, framework-neutral reference for embedding Paprel accounting into a multi-entity real-estate platform.
+A production-shaped, framework-neutral reference for embedding Paprel accounting into a real-estate platform. It connects one Paprel company through one App Connect client.
 
 This repository intentionally contains one complete application rather than several overlapping demos. It shows the integration boundaries a partner should own: routing, company context, URL state, session presentation, error states, and the server-side App Connect token exchange.
 
@@ -12,7 +12,6 @@ This repository intentionally contains one complete application rather than seve
 - delegated `paprel:resource-open` and `paprel:view-change` events
 - host-rendered success feedback from `paprel:operation-success`
 - URL-backed search, tabs, and pagination
-- one App Connect client per managed entity
 - server-side token caching, and automatic renewal that does not disturb open forms or expose a secret to the browser
 - inherited Paprel design tokens inside a partner-specific shell
 
@@ -28,15 +27,15 @@ npm run dev
 
 Open <http://127.0.0.1:5181/>.
 
-If App Connect credentials are not available yet, the application still starts and displays a setup guide with the exact server variables required for the selected entity. No shared demo secrets are included in this public repository.
+If App Connect credentials are not available yet, the application still starts and displays a setup guide with the exact server variables required. No shared demo secrets are included in this public repository.
 
 ## Production boundary
 
-The Vite plugin in `apps/real-estate-accounting/server/embed-token-bff.ts` exists only for local development. In production, implement `GET /api/embed-token` in your server or serverless runtime. It must read the selected entity, load that entity's App Connect credentials from server-side secrets, exchange them with Paprel, and return the browser-safe token contract.
+The Vite plugin in `apps/real-estate-accounting/server/embed-token-bff.ts` exists only for local development. In production, implement `GET /api/embed-token` in your server or serverless runtime. It must load the App Connect credentials from server-side secrets, exchange them with Paprel, and return the browser-safe token contract.
 
 Client secrets must never use a `VITE_` prefix, appear in frontend code, or be returned to the browser. Configure history fallback to `index.html` for application routes such as `/journals/:id` and `/banking/:id`.
 
-The local token endpoint intentionally has no partner-user session because it runs only inside Vite development. A production BFF must authenticate and authorize the partner user before selecting an entity or issuing an embed token.
+The local token endpoint intentionally has no partner-user session because it runs only inside Vite development. A production BFF must authenticate and authorize the partner user before issuing an embed token.
 
 Cache tokens on the server and reuse them until shortly before expiry: the App Connect token route allows 5 requests a minute per client IP, and all of your users share your server's IP.
 

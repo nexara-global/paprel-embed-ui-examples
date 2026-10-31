@@ -74,8 +74,8 @@ export class App {
     this.renderExpiredBanner(state);
     // Renewal and refresh also publish state. Rebuilding the page for those would remount the
     // embedded components and throw away whatever the user has typed, so only rebuild when the
-    // session actually opens, fails, or moves to another entity.
-    const view = state.ready ? `ready:${state.entity.id}` : `pending:${state.entity.id}:${state.error}:${state.setup ? "setup" : ""}`;
+    // session actually opens or fails.
+    const view = state.ready ? "ready" : `pending:${state.error}:${state.setup ? "setup" : ""}`;
     if (view === this.sessionView) return;
     this.sessionView = view;
     this.workspace.replaceChildren(this.createHeader());
@@ -118,8 +118,7 @@ export class App {
     const guide = document.createElement("section");
     guide.className = "setup-guide";
     const required = state.setup?.required ?? [];
-    guide.innerHTML = `<p class="eyebrow">Setup required</p><h2>Connect a Paprel company</h2><p>This example intentionally starts without demo credentials. Create a server-only environment file and add an App Connect client for <strong data-entity-label></strong>.</p><ol><li>Copy <code>apps/real-estate-accounting/.env.example</code> to <code>apps/real-estate-accounting/.env.local</code>.</li><li>Add the required server variables shown below.</li><li>Restart <code>npm run dev</code>.</li></ol><pre></pre><p class="setup-note">Never prefix client secrets with <code>VITE_</code> or expose them to browser code.</p>`;
-    guide.querySelector("[data-entity-label]")!.textContent = state.entity.label;
+    guide.innerHTML = `<p class="eyebrow">Setup required</p><h2>Connect a Paprel company</h2><p>This example intentionally starts without demo credentials. Create a server-only environment file and add your App Connect client.</p><ol><li>Copy <code>apps/real-estate-accounting/.env.example</code> to <code>apps/real-estate-accounting/.env.local</code>.</li><li>Add the required server variables shown below.</li><li>Restart <code>npm run dev</code>.</li></ol><pre></pre><p class="setup-note">Never prefix client secrets with <code>VITE_</code> or expose them to browser code.</p>`;
     guide.querySelector("pre")!.textContent = required.map((key) => `${key}=`).join("\n");
     return guide;
   }

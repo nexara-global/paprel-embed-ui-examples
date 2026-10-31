@@ -24,22 +24,19 @@ class TokenExchangeError extends Error {
   }
 }
 
-async function exchangeAppConnect(env: Record<string, string>, entityId: string, safeEntityId: string): Promise<BrowserTokenSet> {
-  const prefix = entityId === "default" ? "APP_CONNECT_" : `APP_CONNECT_ENTITY_${safeEntityId}_`;
-  const tokenUrl = (env[`${prefix}TOKEN_URL`] || env.APP_CONNECT_TOKEN_URL)?.trim();
-  const clientId = env[`${prefix}CLIENT_ID`]?.trim();
-  const clientSecret = env[`${prefix}CLIENT_SECRET`]?.trim();
-  const partnerDomain = (env[`${prefix}PARTNER_DOMAIN`] || env.PARTNER_DOMAIN)?.trim();
+async function exchangeAppConnect(env: Record<string, string>): Promise<BrowserTokenSet> {
+  const tokenUrl = env.APP_CONNECT_TOKEN_URL?.trim();
+  const clientId = env.APP_CONNECT_CLIENT_ID?.trim();
+  const clientSecret = env.APP_CONNECT_CLIENT_SECRET?.trim();
+  const partnerDomain = env.PARTNER_DOMAIN?.trim();
 
   if (!tokenUrl || !clientId || !clientSecret || !partnerDomain) {
     throw new NotConfiguredError(
-      entityId === "default"
-        ? "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN."
-        : `Missing App Connect credentials for entity '${entityId}'. Set APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID and APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET.`,
+      "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN.",
       [
         ...(!tokenUrl ? ["APP_CONNECT_TOKEN_URL"] : []),
-        ...(!clientId ? [`${prefix}CLIENT_ID`] : []),
-        ...(!clientSecret ? [`${prefix}CLIENT_SECRET`] : []),
+        ...(!clientId ? ["APP_CONNECT_CLIENT_ID"] : []),
+        ...(!clientSecret ? ["APP_CONNECT_CLIENT_SECRET"] : []),
         ...(!partnerDomain ? ["PARTNER_DOMAIN"] : []),
       ],
     );
@@ -104,18 +101,16 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
         }
 
         const requestUrl = new URL(req.url ?? "/", "http://localhost");
-        const entityId = requestUrl.searchParams.get("entity")?.trim() || "default";
-        const safeEntityId = entityId.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
         // A host-initiated refresh means the current token is suspect, so it must not be reused.
-        if (requestUrl.searchParams.has("refresh")) cache.invalidate(entityId);
+        if (requestUrl.searchParams.has("refresh")) cache.invalidate();
 
         try {
-          const tokens = await cache.get(entityId, () => exchangeAppConnect(env, entityId, safeEntityId));
+          const tokens = await cache.get(() => exchangeAppConnect(env));
           res.end(JSON.stringify(tokens));
         } catch (err) {
           if (err instanceof NotConfiguredError) {
             res.statusCode = 503;
-            res.end(JSON.stringify({ code: "APP_CONNECT_NOT_CONFIGURED", entityId, required: err.required, error: err.message }));
+            res.end(JSON.stringify({ code: "APP_CONNECT_NOT_CONFIGURED", required: err.required, error: err.message }));
           } else if (err instanceof TokenExchangeError) {
             res.statusCode = err.status;
             res.end(JSON.stringify({ error: err.message, code: "APP_CONNECT_TOKEN_EXCHANGE_FAILED" }));

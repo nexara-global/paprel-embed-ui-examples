@@ -11,14 +11,14 @@ src/
   lib/              Environment configuration
   pages/            Host-owned page composition
   paprel/           Web Component and event adapters
-  session/          App Connect session and entity state
+  session/          App Connect session state
   shell/            Partner-owned application shell
 server/
   embed-token-bff.ts Local-only token route
-  token-cache.ts     Per-entity token reuse
+  token-cache.ts     Token reuse
 ```
 
-The host owns navigation through the browser History API. Paprel Web Components emit resource and view-state events; the host maps those events into routes and query parameters. Each portfolio entity maps to a separate App Connect client. The same integration boundaries apply in React, Vue, Svelte, or any other frontend stack.
+The host owns navigation through the browser History API. Paprel Web Components emit resource and view-state events; the host maps those events into routes and query parameters. The same integration boundaries apply in React, Vue, Svelte, or any other frontend stack.
 
 ## Configure credentials
 
@@ -28,7 +28,7 @@ The application can start without credentials and will show an in-app setup guid
 cp apps/real-estate-accounting/.env.example apps/real-estate-accounting/.env.local
 ```
 
-Set `APP_CONNECT_TOKEN_URL`, `APP_CONNECT_CLIENT_ID`, `APP_CONNECT_CLIENT_SECRET`, and `PARTNER_DOMAIN`, then restart the dev server. Each additional portfolio entity needs its own `APP_CONNECT_ENTITY_<ENTITY>_CLIENT_ID` and `APP_CONNECT_ENTITY_<ENTITY>_CLIENT_SECRET` values.
+Set `APP_CONNECT_TOKEN_URL`, `APP_CONNECT_CLIENT_ID`, `APP_CONNECT_CLIENT_SECRET`, and `PARTNER_DOMAIN`, then restart the dev server.
 
 These variables are read only by the local BFF. Never expose `APP_CONNECT_CLIENT_SECRET` through a `VITE_` variable or frontend code.
 
