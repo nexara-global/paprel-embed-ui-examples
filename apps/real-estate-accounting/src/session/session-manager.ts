@@ -1,21 +1,23 @@
 import { configureAccounting, refreshEmbedSession, type EmbedTokenSet } from "@paprel/embed-accounting";
-import { errorMessage, partnerDomain } from "../lib/config";
+import { entities, errorMessage, partnerDomain, type EntityConfig } from "../lib/config";
 
 export type Company = { id: string; name: string; currency?: string };
 export type SessionState = {
   company: Company | null;
+  entity: EntityConfig;
+  entityOptions: EntityConfig[];
   error: string;
   expired: boolean;
   expiresAt: number;
   ready: boolean;
   refreshing: boolean;
-  setup: { required: string[] } | null;
+  setup: { entityId: string; required: string[] } | null;
 };
 
 type Listener = (state: Readonly<SessionState>) => void;
 
-async function requestTokens(force = false): Promise<EmbedTokenSet> {
-  const response = await fetch(`/api/embed-token${force ? "?refresh=1" : ""}`, {
+async function requestTokens(entityId: string, force = false): Promise<EmbedTokenSet & { companyId?: string }> {
+  const response = await fetch(`/api/embed-token?entity=${encodeURIComponent(entityId)}${force ? "&refresh=1" : ""}`, {
     credentials: "include",
   });
   const body = await response.json() as Record<string, unknown>;
@@ -23,16 +25,17 @@ async function requestTokens(force = false): Promise<EmbedTokenSet> {
     if (body.code === "APP_CONNECT_NOT_CONFIGURED") {
       throw new AppConnectSetupError(
         String(body.error ?? "App Connect credentials are not configured."),
+        String(body.entityId ?? entityId),
         Array.isArray(body.required) ? body.required.map(String) : [],
       );
     }
     throw new Error(String(body.error ?? "Token exchange failed"));
   }
-  return body as unknown as EmbedTokenSet;
+  return body as unknown as EmbedTokenSet & { companyId?: string };
 }
 
 class AppConnectSetupError extends Error {
-  constructor(message: string, readonly required: string[]) {
+  constructor(message: string, readonly entityId: string, readonly required: string[]) {
     super(message);
   }
 }
@@ -48,10 +51,12 @@ async function requestCompany(accessToken: string): Promise<Company | null> {
 export class SessionManager {
   private listeners = new Set<Listener>();
   private state: SessionState;
+  private connection = 0;
   private forceNextToken = false;
 
   constructor() {
-    this.state = { company: null, error: "", expired: false, expiresAt: 0, ready: false, refreshing: false, setup: null };
+    const entityOptions = entities();
+    this.state = { company: null, entity: entityOptions[0], entityOptions, error: "", expired: false, expiresAt: 0, ready: false, refreshing: false, setup: null };
   }
 
   snapshot(): Readonly<SessionState> { return this.state; }
@@ -62,9 +67,14 @@ export class SessionManager {
     return () => this.listeners.delete(listener);
   }
 
-  async start(): Promise<void> { await this.connect(); }
+  async start(): Promise<void> { await this.connect(this.state.entity); }
 
-  async reconnect(): Promise<void> { await this.connect(); }
+  async reconnect(): Promise<void> { await this.connect(this.state.entity); }
+
+  async switchEntity(id: string): Promise<void> {
+    const next = this.state.entityOptions.find((entity) => entity.id === id);
+    if (next && next.id !== this.state.entity.id) await this.connect(next);
+  }
 
   async refresh(): Promise<void> {
     this.patch({ refreshing: true });
@@ -73,10 +83,17 @@ export class SessionManager {
     try { await refreshEmbedSession(); } catch { /* shown as the expired state */ } finally { this.patch({ refreshing: false }); }
   }
 
-  private async connect(): Promise<void> {
-    this.patch({ ready: false, error: "", expired: false, company: null, expiresAt: 0, setup: null });
+  private async connect(entity: EntityConfig): Promise<void> {
+    // Only the newest connect may publish state: a slow response for the previous entity must
+    // not relabel the screen, or its token could be shown against the wrong company.
+    const connection = ++this.connection;
+    this.patch({ ready: false, error: "", expired: false, company: null, entity, expiresAt: 0, setup: null });
     try {
-      const initial = await requestTokens();
+      const initial = await requestTokens(entity.id);
+      if (connection !== this.connection) return;
+      if (entity.companyId && initial.companyId && entity.companyId !== initial.companyId) {
+        throw new Error(`${entity.label} is mapped to a different Paprel company.`);
+      }
       // Hand the SDK the token already fetched; exchanging again would spend rate limit for nothing.
       let unused: EmbedTokenSet | null = initial;
       configureAccounting({
@@ -92,20 +109,24 @@ export class SessionManager {
               return tokens;
             }
             unused = null;
-            return requestTokens(force);
+            return requestTokens(entity.id, force);
           },
-          onTokensUpdated: (tokens) => this.patch({ expiresAt: tokens.expiresAt, expired: false, error: "" }),
+          onTokensUpdated: (tokens) => {
+            if (connection === this.connection) this.patch({ expiresAt: tokens.expiresAt, expired: false, error: "" });
+          },
           onSessionExpired: () => {
-            this.patch({ expired: true, error: "The Paprel session expired. Your work on this page is still here; reconnect to continue." });
+            if (connection === this.connection) this.patch({ expired: true, error: "The Paprel session expired. Your work on this page is still here; reconnect to continue." });
           },
         },
       });
       const company = await requestCompany(initial.accessToken);
-      this.patch({ company, expiresAt: initial.expiresAt, ready: true });
+      if (connection !== this.connection) return;
+      this.patch({ company, entity, expiresAt: initial.expiresAt, ready: true });
     } catch (cause) {
+      if (connection !== this.connection) return;
       this.patch({
         error: errorMessage(cause, "Unable to connect to Paprel"),
-        setup: cause instanceof AppConnectSetupError ? { required: cause.required } : null,
+        setup: cause instanceof AppConnectSetupError ? { entityId: cause.entityId, required: cause.required } : null,
       });
     }
   }

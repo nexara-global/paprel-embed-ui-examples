@@ -17,34 +17,37 @@ export function reuseMarginMs(expiresInSeconds: number): number {
 
 /**
  * Token exchange is rate limited per client IP, and in production every user shares the server's
- * IP, so one token is reused. Concurrent misses share one exchange for the same reason.
+ * IP, so tokens are reused per entity. Concurrent misses share one exchange for the same reason.
  */
 export class TokenCache {
-  private token: BrowserTokenSet | null = null;
-  private pending: Promise<BrowserTokenSet> | null = null;
+  private entries = new Map<string, BrowserTokenSet>();
+  private pending = new Map<string, Promise<BrowserTokenSet>>();
+
   private readonly now: () => number;
 
   constructor(now: () => number = Date.now) {
     this.now = now;
   }
 
-  async get(mint: () => Promise<BrowserTokenSet>): Promise<BrowserTokenSet> {
-    if (this.token && this.token.expiresAt - reuseMarginMs(this.token.expiresIn) > this.now()) return this.token;
-    if (this.pending) return this.pending;
+  async get(key: string, mint: () => Promise<BrowserTokenSet>): Promise<BrowserTokenSet> {
+    const cached = this.entries.get(key);
+    if (cached && cached.expiresAt - reuseMarginMs(cached.expiresIn) > this.now()) return cached;
 
-    this.pending = mint()
+    const inFlight = this.pending.get(key);
+    if (inFlight) return inFlight;
+
+    const request = mint()
       .then((tokens) => {
-        this.token = tokens;
+        this.entries.set(key, tokens);
         return tokens;
       })
-      .finally(() => {
-        this.pending = null;
-      });
-    return this.pending;
+      .finally(() => this.pending.delete(key));
+    this.pending.set(key, request);
+    return request;
   }
 
   /** Drops a token the caller has been told is no longer good, for example after a forced refresh. */
-  invalidate(): void {
-    this.token = null;
+  invalidate(key: string): void {
+    this.entries.delete(key);
   }
 }

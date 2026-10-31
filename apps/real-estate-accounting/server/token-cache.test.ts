@@ -9,11 +9,11 @@ test("reuses a token until the margin, then mints again", async () => {
   let mints = 0;
   const cache = new TokenCache(() => now);
   const mint = async () => token(now, 3600, `t${++mints}`);
-  assert.equal((await cache.get(mint)).accessToken, "t1");
+  assert.equal((await cache.get("e", mint)).accessToken, "t1");
   now = 3_000_000;
-  assert.equal((await cache.get(mint)).accessToken, "t1");
+  assert.equal((await cache.get("e", mint)).accessToken, "t1");
   now = 3_600_000 - reuseMarginMs(3600);
-  assert.equal((await cache.get(mint)).accessToken, "t2");
+  assert.equal((await cache.get("e", mint)).accessToken, "t2");
 });
 
 test("margin always exceeds the SDK renewal buffer", () => {
@@ -23,20 +23,21 @@ test("margin always exceeds the SDK renewal buffer", () => {
   }
 });
 
-test("shares concurrent misses", async () => {
+test("keeps entities apart and shares concurrent misses", async () => {
   let mints = 0;
   const cache = new TokenCache(() => 0);
   const mint = async () => token(0, 3600, `t${++mints}`);
-  const [a, b] = await Promise.all([cache.get(mint), cache.get(mint)]);
+  const [a, b, other] = await Promise.all([cache.get("a", mint), cache.get("a", mint), cache.get("b", mint)]);
   assert.equal(a, b);
-  assert.equal(mints, 1);
+  assert.notEqual(a.accessToken, other.accessToken);
+  assert.equal(mints, 2);
 });
 
 test("invalidate forces a new token and failures are not cached", async () => {
   let mints = 0;
   const cache = new TokenCache(() => 0);
-  await assert.rejects(cache.get(async () => { throw new Error("down"); }));
-  await cache.get(async () => token(0, 3600, `t${++mints}`));
-  cache.invalidate();
-  assert.equal((await cache.get(async () => token(0, 3600, `t${++mints}`))).accessToken, "t2");
+  await assert.rejects(cache.get("e", async () => { throw new Error("down"); }));
+  await cache.get("e", async () => token(0, 3600, `t${++mints}`));
+  cache.invalidate("e");
+  assert.equal((await cache.get("e", async () => token(0, 3600, `t${++mints}`))).accessToken, "t2");
 });
