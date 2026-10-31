@@ -17,8 +17,7 @@ export function reuseMarginMs(expiresInSeconds: number): number {
 
 /**
  * Token exchange is rate limited per client IP, and in production every user shares the server's
- * IP, so tokens are reused per entity. Production caches must also be keyed by partner user when
- * the token is bound to one. Concurrent misses share one exchange for the same reason.
+ * IP, so tokens are reused per entity. Concurrent misses share one exchange for the same reason.
  */
 export class TokenCache {
   private entries = new Map<string, BrowserTokenSet>();

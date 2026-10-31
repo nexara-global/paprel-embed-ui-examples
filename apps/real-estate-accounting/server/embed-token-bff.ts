@@ -1,7 +1,6 @@
 import { URL } from "node:url";
 import type { Plugin } from "vite";
 import { devFetch, isLocalDevHost } from "./dev-fetch.js";
-import { mintPartnerSession, PartnerSessionError, type PartnerSessionConfig } from "./partner-session.js";
 import { TokenCache, type BrowserTokenSet } from "./token-cache.js";
 
 function formatFetchError(err: unknown, tokenUrl: string): string {
@@ -23,28 +22,6 @@ class TokenExchangeError extends Error {
   constructor(readonly status: number) {
     super("Token exchange failed");
   }
-}
-
-function missing(env: Record<string, string>, names: string[]): string[] {
-  return names.filter((name) => !env[name]?.trim());
-}
-
-function partnerConfig(env: Record<string, string>, entityId: string, safeEntityId: string): PartnerSessionConfig {
-  const companyKey = `PAPREL_PARTNER_ENTITY_${safeEntityId}_COMPANY_ID`;
-  const userKey = `PAPREL_PARTNER_ENTITY_${safeEntityId}_EXTERNAL_USER_ID`;
-  const required = missing(env, ["PAPREL_API_BASE_URL", "PAPREL_PARTNER_CLIENT_ID", "PAPREL_PARTNER_KID", "PAPREL_PARTNER_PRIVATE_KEY_PEM", companyKey, userKey]);
-  if (required.length) {
-    throw new NotConfiguredError(`Missing Partner API configuration for entity '${entityId}'.`, required);
-  }
-  return {
-    apiBaseUrl: env.PAPREL_API_BASE_URL.trim().replace(/\/$/, ""),
-    clientId: env.PAPREL_PARTNER_CLIENT_ID.trim(),
-    keyId: env.PAPREL_PARTNER_KID.trim(),
-    // Env files hold the PEM on one line with literal \n separators.
-    privateKeyPem: env.PAPREL_PARTNER_PRIVATE_KEY_PEM.replace(/\\n/g, "\n"),
-    companyId: env[companyKey].trim(),
-    externalUserId: env[userKey].trim(),
-  };
 }
 
 async function exchangeAppConnect(env: Record<string, string>, entityId: string, safeEntityId: string): Promise<BrowserTokenSet> {
@@ -112,11 +89,7 @@ async function exchangeAppConnect(env: Record<string, string>, entityId: string,
   };
 }
 
-/**
- * Dev-only BFF. Exchanges server-side credentials for a browser-safe token and never exposes a
- * secret or the partner token. Setting PAPREL_PARTNER_CLIENT_ID switches every entity from
- * App Connect to Partner API sessions; the browser contract is the same either way.
- */
+/** Dev-only BFF — exchanges App Connect client_credentials; never expose secret to the browser. */
 export function embedTokenBff(env: Record<string, string>): Plugin {
   const cache = new TokenCache();
   return {
@@ -137,17 +110,13 @@ export function embedTokenBff(env: Record<string, string>): Plugin {
         if (requestUrl.searchParams.has("refresh")) cache.invalidate(entityId);
 
         try {
-          const tokens = await cache.get(entityId, () =>
-            env.PAPREL_PARTNER_CLIENT_ID?.trim()
-              ? mintPartnerSession(partnerConfig(env, entityId, safeEntityId), (url, init) => devFetch(url, init, env))
-              : exchangeAppConnect(env, entityId, safeEntityId),
-          );
+          const tokens = await cache.get(entityId, () => exchangeAppConnect(env, entityId, safeEntityId));
           res.end(JSON.stringify(tokens));
         } catch (err) {
           if (err instanceof NotConfiguredError) {
             res.statusCode = 503;
             res.end(JSON.stringify({ code: "APP_CONNECT_NOT_CONFIGURED", entityId, required: err.required, error: err.message }));
-          } else if (err instanceof TokenExchangeError || err instanceof PartnerSessionError) {
+          } else if (err instanceof TokenExchangeError) {
             res.statusCode = err.status;
             res.end(JSON.stringify({ error: err.message, code: "APP_CONNECT_TOKEN_EXCHANGE_FAILED" }));
           } else {

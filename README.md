@@ -12,7 +12,7 @@ This repository intentionally contains one complete application rather than seve
 - delegated `paprel:resource-open` and `paprel:view-change` events
 - host-rendered success feedback from `paprel:operation-success`
 - URL-backed search, tabs, and pagination
-- two server-side token sources behind one browser contract: one App Connect client per entity, or Partner API sessions from one partner credential
+- one App Connect client per managed entity
 - server-side token caching, and automatic renewal that does not disturb open forms or expose a secret to the browser
 - inherited Paprel design tokens inside a partner-specific shell
 
@@ -38,9 +38,7 @@ Client secrets must never use a `VITE_` prefix, appear in frontend code, or be r
 
 The local token endpoint intentionally has no partner-user session because it runs only inside Vite development. A production BFF must authenticate and authorize the partner user before selecting an entity or issuing an embed token.
 
-Cache tokens on the server and reuse them until shortly before expiry: the App Connect token route allows 5 requests a minute per client IP, and all of your users share your server's IP. Key the cache by partner user if your tokens are bound to one.
-
-Platforms that manage many companies should use [Partner API sessions](https://paprel.com/documentation/partner-api/sessions) rather than one App Connect client per company. See the application README for the configuration.
+Cache tokens on the server and reuse them until shortly before expiry: the App Connect token route allows 5 requests a minute per client IP, and all of your users share your server's IP.
 
 See the [SDK integration documentation](https://github.com/nexara-global/paprel-embed-ui/tree/main/docs/partner-integration) for the complete BFF contract.
 
