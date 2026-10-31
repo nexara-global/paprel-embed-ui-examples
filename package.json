@@ -7,16 +7,17 @@
   ],
   "scripts": {
     "dev": "npm run dev -w @paprel-examples/real-estate-accounting",
-    "build": "npm run build -w @paprel-examples/real-estate-accounting"
+    "build": "npm run build -w @paprel-examples/real-estate-accounting",
+    "test": "npm run test -w @paprel-examples/real-estate-accounting"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "@paprel/embed-accounting": "0.1.0-beta.0",
-    "@paprel/embed-core": "0.1.0-beta.0",
-    "@paprel/embed-reports": "0.1.0-beta.0",
-    "@paprel/embed-ui": "0.1.0-beta.0"
+    "@paprel/embed-accounting": "0.1.0-beta.1",
+    "@paprel/embed-core": "0.1.0-beta.1",
+    "@paprel/embed-reports": "0.1.0-beta.1",
+    "@paprel/embed-ui": "0.1.0-beta.1"
   },
   "devDependencies": {
     "vite": "^6.4.3"

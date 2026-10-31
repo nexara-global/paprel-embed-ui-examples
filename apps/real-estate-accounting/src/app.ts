@@ -16,6 +16,8 @@ export class App {
   private toast = document.createElement("div");
   private drawer = document.createElement("aside");
   private toastTimer?: number;
+  private sessionView = "";
+  private expiredBanner = document.createElement("div");
 
   constructor(private root: HTMLElement) {
     this.workspace.className = "workspace";
@@ -26,6 +28,9 @@ export class App {
     this.toast.hidden = true;
     this.drawer.className = "match-drawer";
     this.drawer.hidden = true;
+    this.expiredBanner.className = "session-banner";
+    this.expiredBanner.setAttribute("role", "alert");
+    this.expiredBanner.hidden = true;
     const shell = document.createElement("div");
     shell.className = "app-shell";
     shell.append(createSidebar(this.session, this.router), this.workspace);
@@ -44,7 +49,7 @@ export class App {
 
   private renderRoute(path: string, query: URLSearchParams): void {
     if (path === "/") { this.router.navigate("/accounts", true); return; }
-    const { element } = renderPage(path, query);
+    const { element } = renderPage(path, query, this.session.snapshot().company?.currency);
     if (!element.childNodes.length) { this.router.navigate("/accounts", true); return; }
     const header = this.workspace.querySelector<HTMLElement>(".topbar")!;
     header.querySelector(".header-action")?.remove();
@@ -66,6 +71,13 @@ export class App {
   }
 
   private renderSession(state: Readonly<SessionState>): void {
+    this.renderExpiredBanner(state);
+    // Renewal and refresh also publish state. Rebuilding the page for those would remount the
+    // embedded components and throw away whatever the user has typed, so only rebuild when the
+    // session actually opens, fails, or moves to another entity.
+    const view = state.ready ? `ready:${state.entity.id}` : `pending:${state.entity.id}:${state.error}:${state.setup ? "setup" : ""}`;
+    if (view === this.sessionView) return;
+    this.sessionView = view;
     this.workspace.replaceChildren(this.createHeader());
     if (!state.ready) {
       if (state.setup) {
@@ -83,10 +95,23 @@ export class App {
       }
       this.workspace.append(this.status);
     } else {
-      this.workspace.append(this.surface);
+      this.workspace.append(this.expiredBanner, this.surface);
       const route = this.router.current();
       this.renderRoute(route.path, route.query);
     }
+  }
+
+  private renderExpiredBanner(state: Readonly<SessionState>): void {
+    this.expiredBanner.hidden = !state.expired;
+    if (!state.expired) return;
+    const message = document.createElement("span");
+    message.textContent = state.error;
+    const reconnect = document.createElement("button");
+    reconnect.type = "button";
+    reconnect.textContent = state.refreshing ? "Reconnecting…" : "Reconnect";
+    reconnect.disabled = state.refreshing;
+    reconnect.addEventListener("click", () => void this.session.refresh());
+    this.expiredBanner.replaceChildren(message, reconnect);
   }
 
   private createSetupGuide(state: Readonly<SessionState>): HTMLElement {
