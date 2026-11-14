@@ -31,7 +31,10 @@ export class Router {
       if (value == null || value === "" || value === false) url.searchParams.delete(key);
       else url.searchParams.set(key, Array.isArray(value) ? value.join(",") : String(value));
     }
-    this.navigate(`${url.pathname}${url.search}`, true);
+    // Reflect component state in the URL without notifying: the component already shows this
+    // state, and re-rendering the route would remount it and drop focus and scroll position.
+    // Back, forward and reload still restore the view from the URL.
+    window.history.replaceState({}, "", `${url.pathname}${url.search}`);
   }
 
   subscribe(listener: Listener): () => void {

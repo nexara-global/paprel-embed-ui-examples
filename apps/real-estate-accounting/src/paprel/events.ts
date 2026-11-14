@@ -38,7 +38,9 @@ export function connectPaprelEvents(root: HTMLElement, router: Router, handlers:
     router.navigate(`/journals/${journalId}/${action}`);
   };
   const journalSaved = (event: Event) => {
-    const id = String((event as CustomEvent<{ journal: { id?: string } }>).detail.journal.id ?? "");
+    // anchor_id is stable across versions; the API's fallback for version-row ids is transitional.
+    const { journal } = (event as CustomEvent<{ journal: { id?: string; anchor_id?: string } }>).detail;
+    const id = String(journal.anchor_id ?? journal.id ?? "");
     router.navigate(id ? `/journals/${id}` : "/journals");
   };
   const operationSuccess = (event: Event) => handlers.notify((event as CustomEvent<PaprelOperationSuccessDetail>).detail.message);

@@ -1,74 +1,7 @@
-import http from "node:http";
-import https from "node:https";
 import { URL } from "node:url";
 import type { Plugin } from "vite";
-
-type FetchLikeResponse = {
-  ok: boolean;
-  status: number;
-  text: () => Promise<string>;
-};
-
-function isLocalDevHost(url: string): boolean {
-  try {
-    const { hostname } = new URL(url);
-    return hostname === "localhost" || hostname.endsWith(".localhost") || hostname === "127.0.0.1";
-  } catch {
-    return false;
-  }
-}
-
-function insecureNodeRequest(
-  url: string,
-  init: { method?: string; headers?: Record<string, string>; body?: string },
-): Promise<FetchLikeResponse> {
-  return new Promise((resolve, reject) => {
-    const parsed = new URL(url);
-    const lib = parsed.protocol === "https:" ? https : http;
-    const req = lib.request(
-      url,
-      {
-        method: init.method ?? "GET",
-        headers: init.headers,
-        rejectUnauthorized: false,
-      },
-      (res) => {
-        const chunks: Buffer[] = [];
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => {
-          const body = Buffer.concat(chunks).toString("utf8");
-          const status = res.statusCode ?? 500;
-          resolve({
-            ok: status >= 200 && status < 300,
-            status,
-            text: async () => body,
-          });
-        });
-      },
-    );
-    req.on("error", reject);
-    if (init.body) req.write(init.body);
-    req.end();
-  });
-}
-
-async function devFetch(
-  url: string,
-  init: { method?: string; headers?: Record<string, string>; body?: string },
-  env: Record<string, string>,
-): Promise<FetchLikeResponse> {
-  const insecureTls =
-    env.PAPREL_DEV_INSECURE_TLS === "1" ||
-    env.PAPREL_DEV_INSECURE_TLS === "true" ||
-    isLocalDevHost(url);
-
-  if (insecureTls) {
-    return insecureNodeRequest(url, init);
-  }
-
-  const res = await fetch(url, init);
-  return { ok: res.ok, status: res.status, text: () => res.text() };
-}
+import { devFetch, isLocalDevHost } from "./dev-fetch.js";
+import { TokenCache, type BrowserTokenSet } from "./token-cache.js";
 
 function formatFetchError(err: unknown, tokenUrl: string): string {
   const base = err instanceof Error ? err.message : String(err);
@@ -79,103 +12,117 @@ function formatFetchError(err: unknown, tokenUrl: string): string {
   return `${base}${cause}`;
 }
 
+class NotConfiguredError extends Error {
+  constructor(message: string, readonly required: string[]) {
+    super(message);
+  }
+}
+
+class TokenExchangeError extends Error {
+  constructor(readonly status: number) {
+    super("Token exchange failed");
+  }
+}
+
+async function exchangeAppConnect(env: Record<string, string>, entityId: string, safeEntityId: string): Promise<BrowserTokenSet> {
+  const prefix = entityId === "default" ? "APP_CONNECT_" : `APP_CONNECT_ENTITY_${safeEntityId}_`;
+  const tokenUrl = (env[`${prefix}TOKEN_URL`] || env.APP_CONNECT_TOKEN_URL)?.trim();
+  const clientId = env[`${prefix}CLIENT_ID`]?.trim();
+  const clientSecret = env[`${prefix}CLIENT_SECRET`]?.trim();
+  const partnerDomain = (env[`${prefix}PARTNER_DOMAIN`] || env.PARTNER_DOMAIN)?.trim();
+
+  if (!tokenUrl || !clientId || !clientSecret || !partnerDomain) {
+    throw new NotConfiguredError(
+      entityId === "default"
+        ? "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN."
+        : `Missing App Connect credentials for entity '${entityId}'. Set APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID and APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET.`,
+      [
+        ...(!tokenUrl ? ["APP_CONNECT_TOKEN_URL"] : []),
+        ...(!clientId ? [`${prefix}CLIENT_ID`] : []),
+        ...(!clientSecret ? [`${prefix}CLIENT_SECRET`] : []),
+        ...(!partnerDomain ? ["PARTNER_DOMAIN"] : []),
+      ],
+    );
+  }
+
+  let tokenRes;
+  try {
+    tokenRes = await devFetch(
+      tokenUrl,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-partner-domain": partnerDomain,
+        },
+        body: JSON.stringify({
+          grant_type: "client_credentials",
+          client_id: clientId,
+          client_secret: clientSecret,
+        }),
+      },
+      env,
+    );
+  } catch (err) {
+    throw new Error(formatFetchError(err, tokenUrl));
+  }
+
+  const raw = await tokenRes.text();
+  if (!tokenRes.ok) {
+    console.error(`Paprel token exchange failed with status ${tokenRes.status}:`, raw);
+    throw new TokenExchangeError(tokenRes.status);
+  }
+
+  // The OAuth endpoint returns the RFC 6749 shape at the top level; older gateways wrap it in data.
+  const parsed = JSON.parse(raw) as { data?: Record<string, unknown> } & Record<string, unknown>;
+  const data = parsed.data ?? parsed;
+  const accessToken = data.access_token as string | undefined;
+  if (!accessToken) throw new Error("No access_token in token response");
+
+  const expiresIn = Number(data.expires_in ?? 3600);
+  return {
+    accessToken,
+    expiresAt: Date.now() + expiresIn * 1000,
+    permissions: data.permissions,
+    companyId: data.company_id,
+    expiresIn,
+  };
+}
+
 /** Dev-only BFF — exchanges App Connect client_credentials; never expose secret to the browser. */
 export function embedTokenBff(env: Record<string, string>): Plugin {
+  const cache = new TokenCache();
   return {
     name: "embed-token-bff",
     configureServer(server) {
       server.middlewares.use("/api/embed-token", async (req, res) => {
-        if (req.method !== "GET" && req.method !== "POST") {
+        res.setHeader("Content-Type", "application/json");
+        if (req.method !== "GET") {
           res.statusCode = 405;
-          res.end("Method Not Allowed");
+          res.end(JSON.stringify({ error: "Method Not Allowed" }));
           return;
         }
 
         const requestUrl = new URL(req.url ?? "/", "http://localhost");
         const entityId = requestUrl.searchParams.get("entity")?.trim() || "default";
         const safeEntityId = entityId.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
-        const prefix = entityId === "default" ? "APP_CONNECT_" : `APP_CONNECT_ENTITY_${safeEntityId}_`;
-        const tokenUrl = (env[`${prefix}TOKEN_URL`] || env.APP_CONNECT_TOKEN_URL)?.trim();
-        const clientId = env[`${prefix}CLIENT_ID`]?.trim();
-        const clientSecret = env[`${prefix}CLIENT_SECRET`]?.trim();
-        const partnerDomain = (env[`${prefix}PARTNER_DOMAIN`] || env.PARTNER_DOMAIN)?.trim();
-
-        if (!tokenUrl || !clientId || !clientSecret || !partnerDomain) {
-          const required = [
-            ...(!tokenUrl ? ["APP_CONNECT_TOKEN_URL"] : []),
-            ...(!clientId ? [entityId === "default" ? "APP_CONNECT_CLIENT_ID" : `APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID`] : []),
-            ...(!clientSecret ? [entityId === "default" ? "APP_CONNECT_CLIENT_SECRET" : `APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET`] : []),
-            ...(!partnerDomain ? ["PARTNER_DOMAIN"] : []),
-          ];
-          res.statusCode = 503;
-          res.setHeader("Content-Type", "application/json");
-          res.end(
-            JSON.stringify({
-              code: "APP_CONNECT_NOT_CONFIGURED",
-              entityId,
-              required,
-              error:
-                entityId === "default"
-                  ? "Missing App Connect env. Copy .env.example to .env.local and set APP_CONNECT_TOKEN_URL, APP_CONNECT_CLIENT_ID, APP_CONNECT_CLIENT_SECRET, PARTNER_DOMAIN."
-                  : `Missing App Connect credentials for entity '${entityId}'. Set APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_ID and APP_CONNECT_ENTITY_${safeEntityId}_CLIENT_SECRET.`,
-            }),
-          );
-          return;
-        }
+        // A host-initiated refresh means the current token is suspect, so it must not be reused.
+        if (requestUrl.searchParams.has("refresh")) cache.invalidate(entityId);
 
         try {
-          const tokenRes = await devFetch(
-            tokenUrl,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "x-partner-domain": partnerDomain,
-              },
-              body: JSON.stringify({
-                grant_type: "client_credentials",
-                client_id: clientId,
-                client_secret: clientSecret,
-              }),
-            },
-            env,
-          );
-
-          const raw = await tokenRes.text();
-          if (!tokenRes.ok) {
-            console.error(`Paprel token exchange failed with status ${tokenRes.status}:`, raw);
-            res.statusCode = tokenRes.status;
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "Token exchange failed", code: "APP_CONNECT_TOKEN_EXCHANGE_FAILED" }));
-            return;
-          }
-
-          const parsed = JSON.parse(raw) as { data?: Record<string, unknown> } & Record<string, unknown>;
-          const data = parsed.data ?? parsed;
-          const accessToken = data.access_token as string | undefined;
-          const expiresIn = Number(data.expires_in ?? 7200);
-
-          if (!accessToken) {
-            res.statusCode = 502;
-            res.setHeader("Content-Type", "application/json");
-            res.end(JSON.stringify({ error: "No access_token in token response" }));
-            return;
-          }
-
-          res.setHeader("Content-Type", "application/json");
-          res.end(
-            JSON.stringify({
-              accessToken,
-              expiresAt: Date.now() + expiresIn * 1000,
-              permissions: data.permissions,
-              companyId: data.company_id,
-              expiresIn,
-            }),
-          );
+          const tokens = await cache.get(entityId, () => exchangeAppConnect(env, entityId, safeEntityId));
+          res.end(JSON.stringify(tokens));
         } catch (err) {
-          res.statusCode = 500;
-          res.setHeader("Content-Type", "application/json");
-          res.end(JSON.stringify({ error: formatFetchError(err, tokenUrl) }));
+          if (err instanceof NotConfiguredError) {
+            res.statusCode = 503;
+            res.end(JSON.stringify({ code: "APP_CONNECT_NOT_CONFIGURED", entityId, required: err.required, error: err.message }));
+          } else if (err instanceof TokenExchangeError) {
+            res.statusCode = err.status;
+            res.end(JSON.stringify({ error: err.message, code: "APP_CONNECT_TOKEN_EXCHANGE_FAILED" }));
+          } else {
+            res.statusCode = 500;
+            res.end(JSON.stringify({ error: err instanceof Error ? err.message : String(err) }));
+          }
         }
       });
     },
